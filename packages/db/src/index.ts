@@ -1,6 +1,9 @@
-// @britus/db — fronteira de persistência: schema Drizzle, migrations, conexão,
-// transações e repositories.
+// @britus/db — fronteira de persistência (PostgreSQL + Drizzle).
 //
-// Skeleton estrutural (Sprint 1 / Etapa 1): SEM conexão real, schema de domínio,
-// migrations ou credenciais. Drizzle será declarado na etapa "banco".
-export {};
+// Exporta apenas fábricas explícitas: importar este pacote NÃO abre conexão, não
+// cria pool e não exige DATABASE_URL. Ver README e ADR-0017.
+export { getDatabaseUrl } from "./env.js";
+export type { DatabaseEnv } from "./env.js";
+export { createDatabasePool } from "./pool.js";
+export { createDatabaseClient } from "./client.js";
+export * as schema from "./schema/index.js";
