@@ -1,28 +1,43 @@
+---
+id: DOC-DOCS-INDEX
+title: Índice da Documentação — BRITUS Platform
+status: Active
+consumer: Both
+updated: 2026-07-24
+---
+
 # Documentação — BRITUS Platform
 
 A documentação é tratada como **código** (Docs-as-Code): versiona junto com o
 repositório, é revisada em Pull Request e é fonte única de verdade por assunto
 (**Single Source of Truth**).
 
-## Estado atual (início enxuto — Product First / Just-in-Time)
-
-Criamos apenas o necessário para a fundação:
+## Estado atual
 
 ```
 docs/
-├── 00-foundation/
-│   └── PRODUCT_BRIEF.md   # o que é o produto, MVP, KPIs (v1.0 aprovado)
-└── _templates/            # modelos de artefatos (a preencher)
+├── 00-foundation/    PRODUCT_BRIEF, CONSOLIDATION_LOG
+├── 01-governance/    RISK_REGISTER (+ Open Questions)
+├── 02-decisions/     ADRs (índice + ADR-0003, 0016–0019)
+├── 04-sprints/       SPR-0009
+├── 05-requirements/  NFR, SPRINT1_IMPLEMENTATION_CONTRACT
+├── 06-domain/        DOMAIN_MODEL
+├── 07-architecture/  ARCHITECTURE_OVERVIEW
+├── 08-database/      DATA_MODEL (ER)
+├── 09-api/           CONTRACTS
+├── 12-security/      SECURITY_PRIVACY_BASELINE
+├── 13-operations/    RELIABILITY_BASELINE
+└── _templates/       ADR (+ outros a criar)
 ```
 
-## Organização definitiva (proposta — a expandir sob demanda)
+## Organização definitiva (taxonomia aprovada)
 
-A taxonomia numérica completa (00–99: architecture, decisions/ADR, rfc,
-sprints, requirements, domain, database, api, frontend, backend, security,
-operations, business, roadmap, ai, testing, deployment, diagrams, meetings)
-foi **aprovada conceitualmente**, mas **não** será materializada de uma vez:
-cada pasta nasce quando o primeiro documento real dela existir. Criar 20 pastas
-vazias hoje seria estrutura ociosa (contra Just-in-Time).
+A taxonomia numérica aprovada (00-foundation, 01-governance, 02-decisions,
+03-rfc, 04-sprints, 05-requirements, 06-domain, 07-architecture, 08-database,
+09-api, 10-frontend, 11-backend, 12-security, 13-operations, 14-business,
+15-roadmap, 16-ai, 17-testing, 18-deployment, 19-diagrams, 20-meetings,
+`_templates`, `_archive`) é a referência. Cada pasta **nasce quando o primeiro
+documento real dela existir** (Just-in-Time) — não se criam pastas vazias.
 
 ## Regras
 
@@ -34,7 +49,11 @@ vazias hoje seria estrutura ociosa (contra Just-in-Time).
 ## Ordem de leitura recomendada
 
 1. `00-foundation/PRODUCT_BRIEF.md`
-2. (futuro) `01-architecture/` → `02-decisions/` (ADRs) → `04-sprints/`
+2. `07-architecture/ARCHITECTURE_OVERVIEW.md`
+3. `06-domain/DOMAIN_MODEL.md` → `08-database/DATA_MODEL.md` → `09-api/CONTRACTS.md`
+4. `12-security/SECURITY_PRIVACY_BASELINE.md` → `13-operations/RELIABILITY_BASELINE.md`
+5. `05-requirements/` (NFR, Sprint 1 Contract) e `02-decisions/` (ADRs)
+6. `01-governance/RISK_REGISTER.md`
 
 ## Como adicionar um novo documento
 
