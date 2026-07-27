@@ -8,7 +8,7 @@ level: Conhecimento
 authority: Arquitetura (CTO)
 owner: Desenvolvedor Principal
 date: 2026-07-24
-updated: 2026-07-24
+updated: 2026-07-25
 related: [SPR-0009, DOC-SECURITY-PRIVACY, DOC-RELIABILITY]
 ---
 
@@ -26,6 +26,10 @@ Documento vivo. Severidade: OBRIGATÓRIA / RECOMENDADA / OPCIONAL.
 | RISK-05 | Perda de dados sem restauração testada | RECOMENDADA | Aberto | Backups + teste de restauração antes de produção |
 | RISK-06 | Dependência vulnerável | RECOMENDADA | Aberto | Política de dependências; CI; futuro SBOM/Renovate |
 | RISK-07 | Identidade Git/licença/CODEOWNERS provisórios | OPCIONAL | Aberto | Confirmar antes de remoto/GitHub |
+| RISK-08 | Perda de dados local (cliente não mantém cópia externa) | OBRIGATÓRIA | Aberto | Custódia local (ADR-0021); avisos discretos + exportação/cópia restaurável; backup é do cliente |
+| RISK-09 | Uso indevido/pirataria de módulos licenciados | RECOMENDADA | Aberto | Validação de licença (ADR-0022, futuro); não decidir tecnologia agora |
+| RISK-10 | Papel LGPD (controlador × operador) indefinido em fluxos online | OBRIGATÓRIA | Aberto | Documentar cada fluxo online (suporte/telemetria/licença/diagnóstico/atualização/acesso remoto) — ADR-0021 |
+| RISK-11 | Identidade Britus sobrepondo a do escritório nos documentos | RECOMENDADA | Aberto | Regra de personalização institucional (PROJECT_CHARTER/PRODUCT_REQUIREMENTS); assinatura do usuário responsável |
 
 ## Open Questions
 | ID | Questão | Autoridade | Estado |

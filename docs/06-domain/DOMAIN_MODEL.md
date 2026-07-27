@@ -2,20 +2,28 @@
 id: DOC-DOMAIN-MODEL
 title: Domain Model — Núcleo Operacional
 status: Active
-version: 1.0
+version: 2.0
 consumer: Both
 level: Produto
 authority: Produto (PO) + Arquitetura (CTO)
 owner: Desenvolvedor Principal
 date: 2026-07-24
-updated: 2026-07-24
-related: [ADR-0017, ADR-0019, DOC-DATA-MODEL, DOC-API-CONTRACTS]
+updated: 2026-07-25
+related: [ADR-0019, ADR-0020, ADR-0021, DOC-DATA-MODEL, DOC-API-CONTRACTS]
 ---
 
 # Domain Model — Núcleo Operacional
 
-> Capacidade planejada; ainda não implementada. Toda entidade pertence a uma
-> `Organization` (isolamento — ADR-0017).
+> Capacidade planejada; ainda não implementada. Modelo **local-first** (ADR-0021):
+> `Organization` é conceito do **Core** e o escopo organizacional ocorre **dentro do
+> ambiente do cliente** — não se afirma uma única organização por instalação.
+
+> **Revisão — Etapa 2.5 (2026-07-25):** introduz-se a hierarquia **Domínio → Área →
+> Especialidade → Recursos** (ADR-0020) e a distinção **Core vs Módulo** (módulos não
+> duplicam entidades do Core). O **Caso** é conceito **genérico**; processo judicial é
+> uma manifestação. `Organization` permanece conceito do Core (ADR-0021): não se afirma
+> uma única organização por instalação nem se impõe/elimina `organization_id` agora.
+> Ver GLOSSARY e ADR-0020.
 
 ## Linguagem ubíqua (essencial)
 - **Atendimento** — recepção/triagem/oportunidade comercial; pode ou não virar Caso.
@@ -32,13 +40,15 @@ evita herança complexa sem necessidade real. Reavaliar só se surgir requisito 
 ## Entidades
 
 ### Organization
-Tenant. Britus = primeira organização. Atributos: `id`, `name`, `status`, timestamps.
-Invariante: raiz de isolamento — todo dado operacional referencia uma organização.
+Conceito de **escopo organizacional do Core** (ADR-0020). A Britus Advocacia é o
+escritório-piloto. Atributos: `id`, `name`, `status`, timestamps. A materialização do
+escopo (`organization_id`) é decidida na modelagem (Etapa 3+); uma instalação **não** é
+obrigatoriamente mono-organização (ADR-0021).
 
 ### User / OrganizationMembership
 `User`: identidade de acesso (`id`, `name`, `email`, `status` ativo/suspenso/desativado).
 `OrganizationMembership`: vínculo usuário↔organização + **role** (`Owner`|`Lawyer`|`Assistant`).
-Autorização confirma o vínculo (ADR-0017). MFA e recuperação = capacidade planejada.
+Autorização confirma o vínculo (ADR-0021). MFA e recuperação = capacidade planejada.
 
 ### Client
 `id`, `organization_id`, `person_type` (PF|PJ), `display_name`, documento condicional
@@ -97,6 +107,7 @@ Derivadas/preservadas sem PII (período, canal, área, tipo, resultado, conflito
 Ver estratégia no Data Model e Security & Privacy.
 
 ## Invariantes transversais
-- Todo registro operacional tem `organization_id`; consultas sempre filtram por organização.
+- Onde houver escopo organizacional, as consultas o respeitam; a materialização de
+  `organization_id` é decidida na Etapa 3+ (ADR-0020/0021).
 - Nada de exclusão física de histórico jurídico; usa-se arquivamento.
 - Duplicidade gera aviso, nunca bloqueio no 1º contato.

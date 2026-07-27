@@ -1,106 +1,84 @@
 ---
 id: DOC-PRODUCT-BRIEF
-title: PRODUCT_BRIEF — BRITUS Platform
+title: Product Brief — Britus — Gestão Simplificada da Advocacia
 status: Approved
-version: 1.0
+version: 2.0
 consumer: Both
 level: Produto
+authority: Produto (PO)
 owner: Product Owner (Ricardo)
-updated: 2026-07-24
+date: 2026-07-24
+updated: 2026-07-25
+related: [DOC-PROJECT-CHARTER, DOC-BUSINESS-MODEL, DOC-ROADMAP, ADR-0020, ADR-0021, ADR-0022]
 ---
 
-# PRODUCT_BRIEF — BRITUS Platform
+# Product Brief — Britus — Gestão Simplificada da Advocacia
 
-*Plataforma de Gestão Jurídica Inteligente · Produto 001 da DPF · v1.0 — Aprovado*
+*Produto 001 · v2.0 (reconciliado na Etapa 2.5)*
 
-## 1. Visão
-Uma plataforma que torna a advocacia da Britus **mais produtiva, rápida e
-organizada** — primeiro validada no uso interno, depois generalizada para
-advogados parceiros e, por fim, para o mercado como SaaS.
+## 1. Identidade e público
+**Britus — Gestão Simplificada da Advocacia.** Software de gestão jurídica
+**instalável no ambiente do cliente**, com os **dados sob custódia do próprio
+cliente** (ADR-0021).
+- **Mercado:** advogados autônomos, pequenos escritórios e escritórios em crescimento.
+- **Cliente-piloto / validação inicial:** a **Britus Advocacia** (interno-primeiro para
+  desenvolver e validar). A comercialização **não** se limita a ela.
+- Produto inicial **exclusivamente para a Advocacia**; expansão para outras profissões é
+  **arquitetural** (ADR-0020), **fora do MVP**.
 
 ## 2. Missão
-Transformar a tecnologia em **vantagem competitiva** para a Britus Advocacia —
-aumentando produtividade, qualidade técnica, capacidade comercial e geração de
-receita — criando uma plataforma **validada na prática antes de sua evolução para
-o mercado**.
+Simplificar a gestão da advocacia — clientes, casos, documentos, conhecimento e
+finanças — aumentando produtividade, organização e capacidade comercial do escritório,
+validando na prática antes de ampliar mercado.
 
-## 3. Público-alvo (em fases)
-- **Fase 1 — Cliente interno:** a própria **Britus Advocacia**.
-- **Fase 2 — Advogados parceiros.**
-- **Fase 3 — Mercado (SaaS).**
+## 3. Problema
+A operação jurídica depende de processos manuais e conhecimento disperso: gestão de
+clientes, casos e documentos consome tempo, reduz velocidade comercial e não escala.
 
-Sequência oficial: **Britus Advocacia → BRITUS Platform → Portal → SaaS.**
+## 4. Proposta de valor
+Ferramenta que **acelera a advocacia** — centraliza clientes, casos, documentos e
+conhecimento (com Assistente Jurídico Inteligente e automações, futuros) — mantendo os
+**dados no ambiente do cliente** e a **identidade do escritório em primeiro plano**
+(personalização institucional; assinatura do usuário responsável).
 
-## 4. Problema
-A operação jurídica da Britus depende de processos manuais e conhecimento
-disperso: gestão de clientes, casos e documentos consome tempo, reduz velocidade
-comercial e não escala.
+## 5. Modelo comercial (resumo — ver BUSINESS_MODEL)
+Software instalável; **módulos licenciáveis** adquiridos separadamente (ADR-0022). A
+infraestrutura online da Britus serve **distribuição, licença, catálogo, download,
+atualização, suporte e treinamento** — **não** armazena dados operacionais. **SaaS
+operacional com dados jurídicos hospedados pela Britus não integra o roadmap atual.**
 
-## 5. Proposta de valor
-Uma ferramenta que **acelera a advocacia da Britus** — centraliza clientes, casos,
-documentos e conhecimento, com **Assistente Jurídico Inteligente** e automações —
-aumentando produtividade, velocidade e capacidade comercial.
+## 6. Objetivo financeiro
+Contribuir para: aumentar faturamento do escritório; reduzir custos operacionais;
+reduzir tempo de execução; aumentar capacidade de atendimento; gerar receita futura via
+licenciamento de módulos.
 
-## 6. Arquitetura Comercial
-- **Qual problema resolve?** Produtividade e organização da advocacia.
-- **Quem paga?** Fase 1: os **clientes da Britus Advocacia** (pagam pelos serviços
-  jurídicos). O software não é cobrado nesta fase.
-- **Como paga?** Honorários de serviços jurídicos; no futuro, assinatura SaaS.
-- **Como chega ao cliente?** Pelo próprio escritório (uso interno); depois Portal e SaaS.
-- **Como mede sucesso?** Pelos KPIs de negócio (§10).
-
-## 7. Objetivos de negócio
-- **Linha A — Serviços Jurídicos:** receita imediata, **prioridade máxima**.
-- **Linha B — Software:** receita recorrente futura (SaaS), construída progressivamente.
-
-## 8. Objetivo Financeiro
-A BRITUS Platform deverá contribuir para: aumentar o faturamento; reduzir custos
-operacionais; reduzir tempo de execução; aumentar a capacidade de atendimento;
-gerar oportunidades de receita futura via evolução para SaaS.
-
-## 9. Limites — o que o Produto 001 **NÃO** faz
-- Não é o site (canal), não é o Portal (evolução), não é o SaaS (ainda).
-- **Fora do MVP:** portal público, multiempresa/SaaS, cobrança de software,
-  Academy, Comunidade, Britus Legal OS.
+## 7. Limites — o que o Produto 001 NÃO faz (MVP)
 - Não substitui o advogado — o Assistente Jurídico Inteligente atua **sob supervisão**.
-- Comunicação externa sempre **compatível com o Estatuto da OAB e o Código de Ética**;
-  nunca promessa de resultado ou captação irregular.
+- Fora do MVP: gestão financeira por caso, cobrança, catálogo/aquisição/atualização de
+  módulos, envio automático de mensagens, vídeos/treinamento (ver BACKLOG).
+- Comunicação externa **compatível com o Estatuto da OAB e o Código de Ética**; nunca
+  promessa de resultado ou captação irregular.
 
-## 10. KPIs do Produto (negócio — primeiros 90 dias)
-- Tempo médio para **organizar um novo cliente**.
-- Tempo para **localizar um documento**.
-- Tempo para **iniciar um novo processo**.
-- **Nº de tarefas automatizadas**.
-- **Horas economizadas por semana**.
-- **Receita adicional** atribuída ao uso da plataforma.
+## 8. KPIs do Produto (negócio — primeiros 90 dias)
+Tempo para organizar um novo cliente; localizar um documento; iniciar um novo processo;
+nº de tarefas automatizadas; horas economizadas por semana; receita adicional atribuída.
 
-## 11. Critérios de sucesso (MVP)
-- A Britus Advocacia **usa a plataforma diariamente** na operação real.
+## 9. Critérios de sucesso (MVP)
+- O escritório-piloto **usa a plataforma diariamente** na operação real.
 - **Redução mensurável de tempo** nas atividades acima.
 - Passa no **teste do advogado** (6 perguntas em 10 minutos).
 
-## 12. MVP — princípio e escopo
-**Princípio (toda funcionalidade deve responder "sim" às três):**
-1. Resolve um problema real da Britus?
-2. Economiza tempo ou aumenta receita?
-3. Será utilizada imediatamente após a implantação?
+## 10. MVP — princípio e escopo
+Princípio (toda funcionalidade responde "sim" às três): resolve um problema real?
+economiza tempo ou aumenta receita? será usada imediatamente após a implantação?
 
-**Escopo do MVP (fluxo de trabalho "atender um cliente"):**
-Cliente → Caso *(nasce classificado: área + potencial financeiro)* → Documentos →
-Timeline/Andamentos → Encerramento do Atendimento *(conversão)* → Dashboard Operacional.
-
+Escopo (fluxo "atender um cliente"): Cliente → Atendimento → Caso *(área + potencial
+financeiro)* → Documentos → Timeline → Encerramento *(conversão)* → Dashboard.
 Camadas seguintes: Base de Conhecimento → Assistente Jurídico Inteligente → Automações.
 
-## 13. Viabilidade Comercial
-Existe demanda (sim, dor real interna); entregável (escopo enxuto); operável (o
-usuário é o próprio escritório); escalável (arquitetura modular, caminho para SaaS).
-
-## 14. Visão de longo prazo
-**Toda capacidade criada deverá ser validada primeiro no uso real da Britus
-Advocacia antes de ser transformada em produto comercial.**
-
-## Princípios permanentes
-- **Captura Única:** nenhuma informação digitada duas vezes; sempre reutilizar.
+## 11. Princípios permanentes
+- **Captura Única:** nada digitado duas vezes; sempre reutilizar.
 - **Assistente = copiloto**, nunca decide; a decisão jurídica é humana.
-- *"Cada tela deve economizar tempo. Cada fluxo deve gerar valor. Cada Sprint deve
-  aproximar a Britus de um escritório mais eficiente e mais rentável."*
+- **Personalização institucional do cliente**: identidade do escritório predominante;
+  assinatura sempre do **usuário responsável**.
+- *"Cada tela deve economizar tempo. Cada fluxo deve gerar valor."*

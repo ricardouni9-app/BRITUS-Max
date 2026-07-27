@@ -2,14 +2,14 @@
 id: ADR-0018
 title: Estilo de API — REST com contratos Zod compartilhados
 status: Accepted
-version: 1.0
+version: 1.1
 consumer: Both
 level: Plataforma
 authority: Arquitetura (CTO)
 owner: Arquiteto-Chefe
 date: 2026-07-24
-updated: 2026-07-24
-related: [ADR-0016, DOC-API-CONTRACTS]
+updated: 2026-07-25
+related: [ADR-0016, ADR-0021, DOC-API-CONTRACTS]
 ---
 
 # ADR-0018 — Estilo de API: REST com contratos Zod compartilhados
@@ -40,5 +40,15 @@ públicos padronizados. **Sem tRPC.** **Sem versionamento `/v1`** enquanto houve
 - Validação e tipos a partir de uma única fonte (SSoT); menos divergência.
 - Um pouco mais de boilerplate que tRPC, compensado pela portabilidade.
 
+## Complemento — Etapa 2.5 (2026-07-25)
+Este ADR permanece **Active**, com os seguintes esclarecimentos (ver ADR-0021):
+- Os **contratos Zod permanecem válidos** como fonte única (SSoT).
+- **REST não pressupõe hospedagem pública**: a API poderá operar **localmente**, em
+  rede privada ou em outra topologia futura.
+- **Transporte, desktop, servidor local, aplicação web local, mobile e sincronização
+  não estão decididos** (ver BACKLOG).
+- **Exposição externa não é pressuposta.**
+
 ## Histórico
 - 2026-07-24 — criação (decisão do CTO na Sprint 0.9).
+- 2026-07-25 — **complemento** (Etapa 2.5): API não pressupõe hospedagem pública; topologia indefinida.

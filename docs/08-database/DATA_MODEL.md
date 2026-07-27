@@ -2,22 +2,26 @@
 id: DOC-DATA-MODEL
 title: Data Model — Núcleo Operacional
 status: Active
-version: 1.0
+version: 2.0
 consumer: Both
 level: Plataforma
 authority: Arquitetura (CTO)
 owner: Desenvolvedor Principal
 date: 2026-07-24
-updated: 2026-07-24
-related: [DOC-DOMAIN-MODEL, ADR-0017, DOC-SECURITY-PRIVACY]
+updated: 2026-07-25
+related: [DOC-DOMAIN-MODEL, ADR-0020, ADR-0021, DOC-SECURITY-PRIVACY]
 ---
 
 # Data Model — Núcleo Operacional
 
-> Modelo lógico inicial (PostgreSQL + Drizzle). **Não** executar migrations nesta
-> fase. Convenções: `id` UUIDv7, `timestamptz` em UTC, `created_at`/`updated_at`,
-> `archived_at` onde há arquivamento, `deleted_at` **apenas** onde a exclusão lógica
-> for realmente necessária. `organization_id` em toda tabela tenant-scoped.
+> **Modelo lógico local (PostgreSQL + Drizzle), no ambiente do cliente** (ADR-0021).
+> Esboço **provisório e ilustrativo** do núcleo: as tabelas e a **materialização de
+> `organization_id`** serão **decididas na modelagem da Etapa 3+** — nesta etapa **não**
+> se impõe nem se elimina `organization_id` (ADR-0020/0021). `Organization` é conceito
+> do **Core**; o isolamento ocorre **dentro** do ambiente do cliente e uma instalação
+> **não** é obrigatoriamente mono-organização. Convenções previstas: `id` UUIDv7,
+> `timestamptz` UTC, `created_at`/`updated_at`, `archived_at` onde há arquivamento,
+> `deleted_at` **apenas** onde a exclusão lógica for realmente necessária.
 
 ## Diagrama ER (Mermaid)
 ```mermaid
@@ -39,13 +43,14 @@ erDiagram
   WORK_TYPE ||--o{ CASE : classifies
 ```
 
-## Tabelas (resumo lógico)
+## Tabelas (resumo lógico — provisório)
 
 ### organizations
-PK `id`; `name`, `status`; timestamps. Raiz de isolamento.
+PK `id`; `name`, `status`; timestamps. Conceito de **escopo organizacional do Core**
+(isolamento dentro do ambiente do cliente).
 
 ### users
-PK `id`; `name`, `email` (único global, `citext`), `password_hash`, `status`; timestamps.
+PK `id`; `name`, `email` (único local, `citext`), `password_hash`, `status`; timestamps.
 
 ### organization_memberships
 PK `id`; FK `organization_id`, FK `user_id`; `role` (`owner|lawyer|assistant`);
@@ -58,8 +63,8 @@ PK `id`; FK `organization_id`; `person_type` (`pf|pj`); `display_name`;
 - Índices: `organization_id`, `display_name`.
 
 ### contacts / addresses
-FK `organization_id`, FK `client_id?`; contatos (`channel`, `value`), endereços
-(`street,number,city,state,zip`). Reutilizáveis (Captura Única).
+FK `organization_id`, FK `client_id?`; contatos (`type` configurável, `value` —
+múltiplos, sem lista rígida de plataformas), endereços. Reutilizáveis (Captura Única).
 
 ### atendimentos
 PK `id`; FK `organization_id`; FK `client_id?`; `channel_origin`; FK `area_id?`,
@@ -68,11 +73,12 @@ FK `work_type_id?`; `status`; `result?`; `non_conversion_reason?`; `assigned_use
 `first_contact_at`; `last_relevant_interaction_at`; `discard_eligible_at` (derivado:
 `last_relevant_interaction_at + 30d`); `discarded_at?`; `discarded_by?`; `anonymized_at?`.
 - Índices: `organization_id`, `status`, `last_relevant_interaction_at`.
-- Após descarte: PII e `summary` removidos/anonimizados; campos de métrica anonimizada preservados.
+- Após descarte: PII e `summary` removidos/anonimizados; métricas anonimizadas preservadas.
 
 ### cases
 PK `id`; FK `organization_id`; FK `atendimento_id?`; FK `area_id`, FK `work_type_id`;
-`status`; `financial_classification`; `process_number?`; `title`; `archived_at?`; timestamps.
+`status`; `financial_classification`; `process_number?` (Caso pode não ter processo);
+`title`; `archived_at?`; timestamps.
 - Índices: `organization_id`, `status`, `area_id`.
 - Sem `deleted_at` (histórico jurídico não é excluído; usa `archived_at`).
 
@@ -81,8 +87,8 @@ PK `id`; FK `organization_id`; FK `case_id`; `party_ref` (client/contact); `role
 (controlado); `is_primary?`; timestamps. UNIQUE(`case_id`,`party_ref`,`role`).
 
 ### areas / work_types (catálogos)
-PK `id`; FK `organization_id`; `name`; `active`; `sort_order`. Não excluíveis com
-histórico (proteção via FK/constraint aplicacional).
+PK `id`; FK `organization_id`; `name`; `active`; `sort_order`. Configuráveis; não
+excluíveis com histórico (proteção via FK/constraint aplicacional).
 
 ### documents
 PK `id`; FK `organization_id`; FK `client_id?`/`case_id?`/`atendimento_id?`; `category`;
@@ -91,7 +97,8 @@ PK `id`; FK `organization_id`; FK `client_id?`/`case_id?`/`atendimento_id?`; `ca
 - Integridade: `content_hash` obrigatório; `physical_key` nunca é identidade.
 
 ### timeline_events
-PK `id`; FK `organization_id`; FK `case_id`; `type`; `payload` (mínimo, sem conteúdo sensível desnecessário); `created_by`; `created_at`. Append.
+PK `id`; FK `organization_id`; FK `case_id`; `type`; `payload` (mínimo); `created_by`;
+`created_at`. Append.
 
 ### audit_logs
 PK `id`; FK `organization_id`; `actor_user_id`; `entity`, `entity_id`; `action`;
@@ -100,14 +107,17 @@ PK `id`; FK `organization_id`; `actor_user_id`; `entity`, `entity_id`; `action`;
 
 ### commercial_metrics (anonimizado) — estratégia
 Recomendação MVP: **anonimização in-place** do `atendimento` (remover PII, manter
-campos comerciais anonimizados) em vez de tabela estatística separada. Alternativa
-(registro estatístico agregado separado) fica `[ADIADA — JIT]`.
+campos comerciais anonimizados) em vez de tabela estatística separada (`[ADIADA — JIT]`).
 
-## Integridade e catálogos
+## Integridade, catálogos e separação Core/módulos
 Constraints de banco como defesa (FKs, uniques parciais, checks de enum); catálogos
-como **tabelas configuráveis** (não enums de código); índices criados a partir de
-consultas reais (listagens por organização/status/área/data).
+como **tabelas configuráveis** (não enums de código). As tabelas de **módulo** (áreas/
+especialidades — ADR-0020) **não duplicam** as entidades do Core acima; serão definidas
+por módulo na etapa correspondente.
 
-## Segregação por organização
-`organization_id` em toda tabela tenant-scoped; toda query filtra por organização;
-autorização confirma vínculo (ADR-0017); testes de isolamento obrigatórios (Sprint 1).
+## Escopo organizacional (Core)
+`Organization` é conceito do **Core** (ADR-0020). Onde houver dados a isolar, o escopo
+organizacional (ex.: `organization_id` + filtro na consulta) ocorre **dentro do ambiente
+do cliente** — **não** há multitenancy de servidor controlado pela Britus (ADR-0017
+Superseded / ADR-0021). A materialização (colunas, constraints, testes de isolamento) é
+**decidida na Etapa 3+**; não se impõe nem se elimina agora.

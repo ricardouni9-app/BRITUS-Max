@@ -3,7 +3,7 @@ id: DOC-DOCS-INDEX
 title: Índice da Documentação — BRITUS Platform
 status: Active
 consumer: Both
-updated: 2026-07-24
+updated: 2026-07-25
 ---
 
 # Documentação — BRITUS Platform
@@ -15,18 +15,22 @@ repositório, é revisada em Pull Request e é fonte única de verdade por assun
 ## Estado atual
 
 ```
+(raiz)  AI_INDEX.md — ponto de entrada para IAs
+
 docs/
-├── 00-foundation/    PRODUCT_BRIEF, CONSOLIDATION_LOG
+├── 00-foundation/    PROJECT_CHARTER, PRODUCT_BRIEF, CONSOLIDATION_LOG
 ├── 01-governance/    RISK_REGISTER (+ Open Questions)
-├── 02-decisions/     ADRs (índice + ADR-0003, 0016–0019)
+├── 02-decisions/     ADRs (índice + ADR-0003, 0016–0022)
 ├── 04-sprints/       SPR-0009
-├── 05-requirements/  NFR, SPRINT1_IMPLEMENTATION_CONTRACT
-├── 06-domain/        DOMAIN_MODEL
+├── 05-requirements/  NFR, PRODUCT_REQUIREMENTS, SPRINT1_IMPLEMENTATION_CONTRACT
+├── 06-domain/        DOMAIN_MODEL, GLOSSARY
 ├── 07-architecture/  ARCHITECTURE_OVERVIEW
 ├── 08-database/      DATA_MODEL (ER)
 ├── 09-api/           CONTRACTS
 ├── 12-security/      SECURITY_PRIVACY_BASELINE
 ├── 13-operations/    RELIABILITY_BASELINE
+├── 14-business/      BUSINESS_MODEL
+├── 15-roadmap/       ROADMAP, BACKLOG
 └── _templates/       ADR (+ outros a criar)
 ```
 
@@ -48,12 +52,13 @@ documento real dela existir** (Just-in-Time) — não se criam pastas vazias.
 
 ## Ordem de leitura recomendada
 
-1. `00-foundation/PRODUCT_BRIEF.md`
-2. `07-architecture/ARCHITECTURE_OVERVIEW.md`
-3. `06-domain/DOMAIN_MODEL.md` → `08-database/DATA_MODEL.md` → `09-api/CONTRACTS.md`
-4. `12-security/SECURITY_PRIVACY_BASELINE.md` → `13-operations/RELIABILITY_BASELINE.md`
-5. `05-requirements/` (NFR, Sprint 1 Contract) e `02-decisions/` (ADRs)
-6. `01-governance/RISK_REGISTER.md`
+1. `AI_INDEX.md` (raiz) e `00-foundation/PROJECT_CHARTER.md`
+2. `00-foundation/PRODUCT_BRIEF.md` e `06-domain/GLOSSARY.md`
+3. `07-architecture/ARCHITECTURE_OVERVIEW.md`
+4. `06-domain/DOMAIN_MODEL.md` → `08-database/DATA_MODEL.md` → `09-api/CONTRACTS.md`
+5. `12-security/SECURITY_PRIVACY_BASELINE.md` → `13-operations/RELIABILITY_BASELINE.md`
+6. `05-requirements/` (NFR, PRODUCT_REQUIREMENTS, Sprint 1 Contract) e `02-decisions/` (ADRs)
+7. `14-business/BUSINESS_MODEL.md`, `15-roadmap/ROADMAP.md`+`BACKLOG.md`, `01-governance/RISK_REGISTER.md`
 
 ## Como adicionar um novo documento
 

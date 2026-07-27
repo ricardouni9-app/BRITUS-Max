@@ -2,57 +2,65 @@
 id: DOC-SECURITY-PRIVACY
 title: Security and Privacy Baseline — Núcleo Operacional
 status: Active
-version: 1.0
+version: 2.0
 consumer: Both
 level: Plataforma
 authority: Arquitetura (CTO)
 owner: Desenvolvedor Principal
 date: 2026-07-24
-updated: 2026-07-24
-related: [ADR-0017, ADR-0019, DOC-DATA-MODEL, DOC-RELIABILITY]
+updated: 2026-07-25
+related: [ADR-0019, ADR-0021, DOC-DATA-MODEL, DOC-RELIABILITY]
 ---
 
 # Security and Privacy Baseline — Núcleo Operacional
 
-> **Aviso:** este é um baseline **técnico**. **Não** constitui parecer jurídico.
-> A política de retenção, descarte, Registro Comercial Mínimo e registro de
-> conflito **deve ser validada juridicamente (LGPD, sigilo profissional, ética,
-> OAB) antes de qualquer uso com dados reais.** Enquanto não validada, é
-> **proibido** inserir dados reais de clientes.
+> **Aviso:** baseline **técnico**, **não** parecer jurídico. A política de retenção,
+> descarte, Registro Comercial Mínimo e registro de conflito **deve ser validada
+> juridicamente (LGPD, sigilo profissional, ética, OAB) antes de qualquer uso com dados
+> reais**. Enquanto não validada, é **proibido** inserir dados reais de clientes.
+
+## Custódia dos dados (ADR-0021)
+Os dados operacionais residem no **ambiente do cliente**; a **Britus não os armazena** e
+eles **não são enviados por padrão** à infraestrutura Britus. **Papel LGPD:** o cliente
+**tende a ser controlador**; a Britus atua **primariamente como fornecedora do
+software**. Fluxos online específicos (suporte, telemetria, licença, diagnóstico,
+atualização, acesso remoto) **podem** gerar tratamentos próprios, **a documentar caso a
+caso** — sem afirmação absoluta de que a Britus nunca será operadora.
 
 ## Princípios (obrigatórios)
-Menor privilégio; deny-by-default; validação no servidor; nenhum segredo no
-frontend; TLS em trânsito; minimização de dados; isolamento por organização
-garantido; arquivos servidos só com autorização; logs sem conteúdo jurídico;
-backups protegidos; trilha de auditoria; retenção definida; revisão de permissões.
+Menor privilégio; deny-by-default; validação no **backend**; nenhum segredo no frontend;
+**TLS quando houver tráfego de rede**; minimização de dados; arquivos acessíveis só com
+autorização; logs sem conteúdo jurídico; trilha de auditoria; retenção definida; revisão
+de permissões; **escopo organizacional respeitado onde houver dados a isolar** (dentro do
+ambiente do cliente).
 
 ## Threat model (proporcional ao MVP)
 | Ameaça | Prob. | Impacto | Mitigação MVP | Futuro |
 |---|---|---|---|---|
 | Acesso indevido / sessão roubada | Média | Alto | cookies httpOnly+secure, expiração, revogação | MFA |
-| Falha de autorização | Média | Alto | deny-by-default, checagem org↔recurso no servidor | revisão periódica |
-| Isolamento entre organizações | Baixa | Crítico | `organization_id` + filtro obrigatório + **testes de isolamento** | auditoria contínua |
-| Enumeração de registros | Média | Médio | IDs não sequenciais (UUIDv7), autz por recurso | rate limiting |
+| Falha de autorização | Média | Alto | deny-by-default, checagem no backend | revisão periódica |
+| Vazamento entre escopos organizacionais | Baixa | Alto | escopo + filtro na consulta; testes quando houver isolamento (Etapa 3+) | auditoria |
+| Perda de dados local (sem cópia externa) | Média | Alto | avisos discretos; exportação/cópia restaurável; backup é do cliente | ver Reliability |
+| Enumeração de registros | Média | Médio | IDs não sequenciais (UUIDv7); autz por recurso | rate limiting |
 | Upload malicioso / infectado | Média | Alto | validação tipo/tamanho, hash, sem execução | varredura antivírus |
-| Vazamento de dados/backup | Baixa | Alto | criptografia em repouso (utilidade), acesso restrito | gestão de chaves |
-| Credenciais comprometidas | Média | Alto | argon2id, proteção contra força bruta | MFA, detecção |
+| Credenciais comprometidas | Média | Alto | argon2id, proteção contra força bruta | MFA |
 | Logs com dados sensíveis | Média | Médio | logs estruturados sem conteúdo jurídico | redaction |
 | Exclusão acidental | Média | Alto | soft/archival onde adequado, confirmação, auditoria | recuperação |
+| Uso indevido de módulos licenciados | Média | Médio | validação de licença (ADR-0022, futuro) | — |
 | Dependência vulnerável | Média | Médio | política de dependências, CI | SBOM, Renovate |
 
 ## Autenticação e autorização
-Sessão segura (cookies httpOnly; secure em produção; proteção CSRF conforme o
-modelo); proteção contra força bruta; invalidação/revogação de sessão; recuperação
-de acesso; usuário ativo/suspenso/desativado; vínculo com organização. **RBAC
-mínimo**: `Owner`/`Lawyer`/`Assistant` (sem admin/auditor genérico). Fornecedor/
-biblioteca de autenticação a decidir e documentar na implementação; nenhum serviço
-pago sem autorização.
+Sessão segura (cookies httpOnly; secure quando aplicável; proteção CSRF conforme o
+modelo); proteção contra força bruta; invalidação/revogação; recuperação de acesso;
+usuário ativo/suspenso/desativado; vínculo com organização (conceito do Core). **RBAC
+mínimo**: `Owner`/`Lawyer`/`Assistant` (sem admin/auditor genérico). Biblioteca de
+autenticação a decidir na implementação; nenhum serviço pago sem autorização.
 
 ## Documentos
-Metadados no banco; binário fora do banco; acesso sempre autorizado; `content_hash`
-de integridade; limite de tamanho; validação de extensão/tipo; nome original só
-como metadado; nome físico não confiável. **Não** armazenar arquivos jurídicos reais
-localmente em produção (FS local apenas em dev, por adaptador substituível).
+Metadados no banco; binário fora do banco, **no ambiente do cliente**; acesso sempre
+autorizado; `content_hash` de integridade; limite de tamanho; validação de extensão/tipo;
+nome original só como metadado; nome físico não confiável. A Britus **não** recebe os
+arquivos jurídicos por padrão (ADR-0021).
 
 ## Privacidade e minimização (LGPD — nível arquitetural)
 - Coletar apenas o necessário; base legal/consentimento como campo quando aplicável.
@@ -74,8 +82,8 @@ localmente em produção (FS local apenas em dev, por adaptador substituível).
 - **Efeito do descarte:** remover/anonimizar PII e resumo narrativo; **eliminar anexos**
   sem retenção (arquivo físico **e** metadados — remover só metadado é falha); **preservar
   métricas anonimizadas**; **auditar** a operação sem copiar o conteúdo eliminado.
-- **Backups:** expiram conforme política técnica; **não** há restauração seletiva para uso
-  operacional comum após o descarte.
+- **Cópias/backup do cliente:** expiram conforme a política do cliente; **não** há
+  restauração seletiva para uso operacional comum após o descarte.
 
 ### Métricas após o descarte
 Preservar apenas anonimizado/agregado (período, canal, área, tipo, resultado, motivo,
@@ -89,7 +97,8 @@ acesso restrito, separado do conteúdo integral/métrica/dado operacional. **Nã
 afirmação de obrigatoriedade nem permissão jurídica — **sujeito a validação jurídica**;
 **proibido com dados reais antes dela**.
 
-## Condições para dados reais (todas obrigatórias)
-Backup habilitado; restauração documentada; HTTPS ativo; acesso administrativo protegido;
-exportação possível; termos/limites do fornecedor avaliados; política de retenção validada
-juridicamente. **Enquanto não atendidas: apenas dados fictícios.**
+## Condições para dados reais (no ambiente do cliente)
+Mecanismo de **cópia restaurável** disponível e testável; **TLS** quando houver rede;
+acesso administrativo protegido; **exportação** possível; **avisos de cópia externa**
+ativos; política de retenção **validada juridicamente**. O **backup é responsabilidade do
+cliente** (ver Reliability). **Enquanto não atendidas: apenas dados fictícios.**

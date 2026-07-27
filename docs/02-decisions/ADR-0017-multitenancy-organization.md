@@ -1,21 +1,31 @@
 ---
 id: ADR-0017
 title: Multitenancy — Organization desde o primeiro modelo
-status: Accepted
-version: 1.0
+status: Superseded
+superseded_by:
+  - ADR-0020
+  - ADR-0021
+version: 1.1
 consumer: Both
 level: Plataforma
 authority: Arquitetura (CTO)
 owner: Arquiteto-Chefe
 date: 2026-07-24
-updated: 2026-07-24
-related: [ADR-0016, DOC-DOMAIN-MODEL, DOC-DATA-MODEL, DOC-SECURITY-PRIVACY]
+updated: 2026-07-25
+related: [ADR-0016, ADR-0020, ADR-0021, DOC-DOMAIN-MODEL, DOC-DATA-MODEL, DOC-SECURITY-PRIVACY]
 ---
 
 # ADR-0017 — Multitenancy: Organization desde o primeiro modelo
 
 ## Status
-Accepted — 2026-07-24.
+**Superseded — 2026-07-25 (por ADR-0020 e ADR-0021).** Aceito originalmente em 2026-07-24.
+
+> Preserva-se historicamente que este ADR definiu **multitenancy de servidor**. Na
+> nova arquitetura (ADR-0021): `Organization` **permanece como conceito do Core**;
+> **não** há multitenancy operacional em servidor controlado pela Britus; os dados
+> ficam no ambiente do cliente; o **isolamento organizacional pode continuar dentro
+> desse ambiente**. **Não** se afirma que toda instalação contém obrigatoriamente uma
+> única organização; **não** se elimina nem se impõe `organization_id` nesta etapa.
 
 ## Contexto
 O primeiro cliente é a própria Britus Advocacia (organização única). A evolução
@@ -45,3 +55,5 @@ recurso**; nenhuma consulta depende apenas do identificador global do registro.
 
 ## Histórico
 - 2026-07-24 — criação (decisão do CTO na Sprint 0.9).
+- 2026-07-25 — **Superseded por ADR-0020 e ADR-0021** (Core/módulos; custódia local).
+  Sprint 1 — Etapa 2.5.
