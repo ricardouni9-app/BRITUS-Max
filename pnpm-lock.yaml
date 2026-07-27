@@ -36,7 +36,11 @@ importers:
 
   packages/config: {}
 
-  packages/contracts: {}
+  packages/contracts:
+    dependencies:
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   packages/db:
     dependencies:
@@ -46,6 +50,9 @@ importers:
       pg:
         specifier: ^8.22.0
         version: 8.22.0
+      uuidv7:
+        specifier: ^1.2.1
+        version: 1.2.1
     devDependencies:
       '@types/pg':
         specifier: ^8.20.0
@@ -1573,6 +1580,10 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
+  uuidv7@1.2.1:
+    resolution: {integrity: sha512-4kPkK3/XTQW9Hbm4CaqfICn+kY9LJtDVEOfgsRRra/+n2Ofg4NqzRFceAkxvQ/Ud/6BpHOPzj8cirqM7TzTN5Q==}
+    hasBin: true
+
   vite-node@2.1.9:
     resolution: {integrity: sha512-AM9aQ/IPrW/6ENLQg3AGY4K1N2TGZdR5e4gu/MmmR2xR3Ll1+dib+nook92g4TV3PXVyeyxdWwtaCAiUL0hMxA==}
     engines: {node: ^18.0.0 || >=20.0.0}
@@ -1655,6 +1666,9 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
@@ -2834,6 +2848,8 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
+  uuidv7@1.2.1: {}
+
   vite-node@2.1.9(@types/node@26.1.1):
     dependencies:
       cac: 6.7.14
@@ -2910,3 +2926,5 @@ snapshots:
   xtend@4.0.2: {}
 
   yocto-queue@0.1.0: {}
+
+  zod@4.4.3: {}

@@ -1,5 +1,5 @@
-// Barrel de schemas Drizzle.
+// Barrel de schemas Drizzle (Core).
 //
-// Vazio nesta etapa (Opção A — somente infraestrutura, sem tabelas de produto).
-// As tabelas tenant-scoped começam na Etapa 3, seguindo o ADR-0017.
-export {};
+// Tabelas do Core seguindo ADR-0020 (Core universal e módulos acopláveis) e
+// ADR-0021 (custódia local dos dados). Módulos não duplicam entidades do Core.
+export * from "./organizations.js";
