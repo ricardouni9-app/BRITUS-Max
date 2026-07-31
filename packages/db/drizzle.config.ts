@@ -8,4 +8,7 @@ export default defineConfig({
   dialect: "postgresql",
   schema: "./src/schema/index.ts",
   out: "./migrations",
+  // Credenciais fornecidas EXCLUSIVAMENTE por ambiente (DATABASE_URL); nunca versionadas.
+  // Comandos que exigem conexão (migrate) falham claramente se a URL estiver ausente.
+  dbCredentials: { url: process.env.DATABASE_URL ?? "" },
 });

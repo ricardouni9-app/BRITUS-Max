@@ -1,0 +1,25 @@
+{
+  "name": "@britus/application",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/persistence-contract.d.ts",
+      "import": "./dist/testing/persistence-contract.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --build"
+  },
+  "dependencies": {
+    "@britus/contracts": "workspace:*",
+    "uuidv7": "^1.2.1"
+  }
+}

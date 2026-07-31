@@ -1,113 +1,191 @@
 ---
 id: DOC-DOMAIN-MODEL
-title: Domain Model — Núcleo Operacional
+title: Domain Model — BRITUS Platform (domínio completo)
 status: Active
-version: 2.0
+version: 3.0
 consumer: Both
 level: Produto
 authority: Produto (PO) + Arquitetura (CTO)
 owner: Desenvolvedor Principal
 date: 2026-07-24
 updated: 2026-07-25
-related: [ADR-0019, ADR-0020, ADR-0021, DOC-DATA-MODEL, DOC-API-CONTRACTS]
+related: [ADR-0019, ADR-0020, ADR-0021, ADR-0022, DOC-DATA-MODEL, DOC-API-CONTRACTS, DOC-GLOSSARY, DOC-PROJECT-CHARTER, DOC-ROADMAP, DOC-BACKLOG]
 ---
 
-# Domain Model — Núcleo Operacional
+# Domain Model — BRITUS Platform
 
-> Capacidade planejada; ainda não implementada. Modelo **local-first** (ADR-0021):
-> `Organization` é conceito do **Core** e o escopo organizacional ocorre **dentro do
-> ambiente do cliente** — não se afirma uma única organização por instalação.
+> Documento **conceitual** (ESPEC-001). Descreve o **domínio**, não a implementação:
+> sem código, SQL, endpoints, telas ou atributos físicos — estes vivem no **DATA_MODEL**
+> (persistência) e nos **contratos de entrada e saída**. Modelo **local-first**
+> (ADR-0021): os dados operacionais ficam no ambiente do cliente. Terminologia canônica:
+> ver **GLOSSARY**. Separação **Core vs Módulos** e hierarquia **Domínio → Área →
+> Especialidade → Recursos**: ADR-0020.
 
-> **Revisão — Etapa 2.5 (2026-07-25):** introduz-se a hierarquia **Domínio → Área →
-> Especialidade → Recursos** (ADR-0020) e a distinção **Core vs Módulo** (módulos não
-> duplicam entidades do Core). O **Caso** é conceito **genérico**; processo judicial é
-> uma manifestação. `Organization` permanece conceito do Core (ADR-0021): não se afirma
-> uma única organização por instalação nem se impõe/elimina `organization_id` agora.
-> Ver GLOSSARY e ADR-0020.
+## Convenção terminológica
+- O **GLOSSARY** é a **autoridade terminológica**.
+- Conceitos de negócio aparecem prioritariamente em **português**; identificadores
+  técnicos canônicos já aprovados podem permanecer em **inglês**. Na primeira ocorrência
+  relevante: *termo em português* (`CanonicalName`).
+- **Caso** não é sinônimo automático de **processo judicial** (conceito genérico; o
+  processo é uma manifestação).
+- **Cliente** não é necessariamente contratante, interessado ou participante.
+- **Organização** não é sinônimo automático de escritório físico, plano, assinatura ou licença.
+- Identificadores já materializados e nomes canônicos de eventos **não** são renomeados
+  nem traduzidos por estilo editorial.
 
-## Linguagem ubíqua (essencial)
-- **Atendimento** — recepção/triagem/oportunidade comercial; pode ou não virar Caso.
-- **Caso** — trabalho jurídico contratado/assumido (judicial, administrativo, consultivo ou extrajudicial). Pode existir sem número de processo.
-- **Registro Comercial Mínimo** — conjunto mínimo de dados de um Atendimento (especialmente não convertido), sob minimização.
-- **Participante** — pessoa/organização vinculada a um Caso com um **papel** controlado.
+## 1. Visão Geral
+- **Objetivo do sistema:** organizar e acelerar a operação de um escritório de advocacia
+  — clientes, atendimentos (recepção comercial), casos (trabalho jurídico), documentos,
+  conhecimento e (futuramente) finanças — mantendo a **identidade do escritório** em
+  primeiro plano e os **dados sob custódia do cliente**.
+- **Limites do domínio:** o **Core** cobre conceitos compartilhados por qualquer área
+  profissional; a **Advocacia** é o primeiro **módulo de domínio**. Fora do domínio:
+  contabilidade/ERP, execução processual automatizada, aconselhamento jurídico automático.
+- **Responsabilidades:** preservar integridade e histórico dos dados operacionais;
+  refletir o fluxo natural "atender um cliente"; permitir que módulos acrescentem
+  conhecimento **sem duplicar** o Core; nunca assumir custódia central pela Britus.
 
-## Decisão de modelagem — Cliente/Pessoa
-**`DECISÃO TÉCNICA (Claude, reversível):`** usar **uma entidade `Client`** com
-discriminador **`person_type` (PF | PJ)** e campos específicos por tipo, em vez de
-herança `Person`/`LegalEntity`. Justificativa: simplicidade antes de abstração;
-evita herança complexa sem necessidade real. Reavaliar só se surgir requisito concreto.
+## 2. Bounded Contexts
+Ancorados em ADR-0020. Status: **Atual** (em construção) · **Planejado** (ROADMAP/BACKLOG).
 
-## Entidades
+- **Core — Identidade & Operação (Atual):** Organização, Acesso/Usuários, Clientes/Pessoas/
+  Contatos, Atendimentos, Casos, Participantes, Documentos, Timeline, Auditoria, Catálogos
+  (Área/Tipo). É o **kernel compartilhado**.
+- **Advocacia — módulo de domínio (PREVISTO):** **primeiro módulo funcional planejado
+  após a fundação do Core**. Áreas e especialidades (ex.: Família → Guarda), conhecimento,
+  modelos e recursos específicos; reutiliza Cliente/Caso do Core.
+- **Financeiro (Planejado):** gestão financeira por caso (valor contratado, pago, saldo,
+  parcelas, recibos, cobrança editável). Ver BACKLOG.
+- **Agenda / Prazos (Planejado):** compromissos e prazos vinculados a casos. Ver BACKLOG.
+- **Assistente Jurídico Inteligente — copiloto (Planejado):** apoio (localizar, sugerir,
+  recuperar conhecimento). Nunca decide. Ver PRODUCT_BRIEF/BACKLOG.
+- **Integrações (Planejado):** entrada de contatos/leads (ex.: site). Ver BACKLOG.
+- **Distribuição & Licenciamento — Plataforma/DPF (Planejado):** catálogo, versões,
+  instalação, atualização e validação de licença de módulos (ADR-0022). **Não** é domínio
+  operacional do produto e **não** acessa dados operacionais (ADR-0021).
 
-### Organization
-Conceito de **escopo organizacional do Core** (ADR-0020). A Britus Advocacia é o
-escritório-piloto. Atributos: `id`, `name`, `status`, timestamps. A materialização do
-escopo (`organization_id`) é decidida na modelagem (Etapa 3+); uma instalação **não** é
-obrigatoriamente mono-organização (ADR-0021).
+> Não se criam módulos artificiais: apenas os contextos com sustentação documental
+> (ADR-0020/0022, ROADMAP, BACKLOG, PRODUCT_BRIEF) estão listados.
 
-### User / OrganizationMembership
-`User`: identidade de acesso (`id`, `name`, `email`, `status` ativo/suspenso/desativado).
-`OrganizationMembership`: vínculo usuário↔organização + **role** (`Owner`|`Lawyer`|`Assistant`).
-Autorização confirma o vínculo (ADR-0021). MFA e recuperação = capacidade planejada.
+## 3. Agregados
+Para cada agregado: finalidade · responsabilidade · proprietário dos dados · ciclo de vida.
 
-### Client
-`id`, `organization_id`, `person_type` (PF|PJ), `display_name`, documento condicional
-(`cpf` para PF, `cnpj` para PJ — opcionais no 1º contato), contatos e endereços associados.
-Regra de duplicidade: ver Data Model (aviso, nunca bloqueio). Cliente pode existir
-antes da contratação. Não excluível quando possuir Casos; arquivável.
+- **Organization** — finalidade: escopo organizacional do Core; responsabilidade: raiz de
+  escopo dos dados; proprietário: a instalação/cliente; ciclo: criada no setup, `active`/
+  `inactive`, **nunca** excluída fisicamente.
+- **User (com OrganizationMembership)** — finalidade: identidade de acesso e vínculo com a
+  organização + papel; responsabilidade: autenticação/autorização; proprietário: a
+  organização; ciclo: convidado → ativo → suspenso → desativado.
+- **Client** — finalidade: pessoa/organização atendida (PF/PJ); responsabilidade: dados
+  cadastrais reutilizáveis (Captura Única); proprietário: a organização; ciclo: criado (pode
+  preceder a contratação), arquivável, não excluível quando possuir Casos.
+- **Atendimento** — finalidade: recepção/triagem/oportunidade comercial (o **Lead** é um
+  Atendimento em recepção — **não** há entidade "Lead" separada, distinta do **Cliente**);
+  responsabilidade: medir conversão e minimizar dados de não convertidos; proprietário: a
+  organização; ciclo: máquina de estados (§7), com **Registro Comercial Mínimo** e descarte
+  controlado. Ao **converter em Cliente**, associa-se a um Cliente (`clientId`), registra
+  `convertedAt` e passa a `status`/`result` = convertido.
+- **Caso** — finalidade: trabalho jurídico contratado/assumido (genérico; processo judicial
+  é uma manifestação); responsabilidade: execução e histórico; proprietário: a organização;
+  ciclo: máquina de estados (§7), histórico **imutável** (arquivamento).
+- **Document** — finalidade: documento vinculado a cliente/caso/atendimento; responsabilidade:
+  integridade (hash) e acesso autorizado; proprietário: a organização (binário no ambiente do
+  cliente); ciclo: registrado → versionado → descarte controlado.
 
-### Contact / Address
-Value-objects reutilizáveis (Captura Única): telefone/e-mail/canal; logradouro/cidade/UF/CEP.
-Vinculados a Client e/ou participantes. Nunca redigitados quando já existentes.
+**Registros de apoio (não agregados de negócio):** `Area`/`WorkType` (catálogos
+configuráveis), `TimelineEvent` (evento de negócio, append) e `AuditLog` (técnico,
+append-only).
 
-### Atendimento
-`id`, `organization_id`, `client_id?` (pode preceder o cliente formal), `channel_origin`,
-`area_id?`, `work_type_id?`, `status`, `result`, `non_conversion_reason?`,
-`assigned_user_id`, `summary` (curto — ver UX), `conflict_flag`, `first_contact_at`,
-`last_relevant_interaction_at`, `discard_eligible_at`, `discarded_at?`, `discarded_by?`.
-**Máquina de estados:** `Novo → Em triagem → Qualificado → (Convertido | Não convertido) → Elegível para descarte → Descartado`.
-`Convertido` gera 1..N Casos e preserva a origem. **Registro Comercial Mínimo** = o
-subconjunto mínimo mantido para não convertidos (minimização — ver Security & Privacy).
+## 4. Entidades (raiz e dependentes)
+*Sem atributos aqui — atributos físicos: ver DATA_MODEL.*
 
-### Caso
-`id`, `organization_id`, `atendimento_id?` (origem rastreável), `area_id`, `work_type_id`,
-`status`, `financial_classification` (Alto|Médio|Baixo ou faixa), `process_number?`,
-`title`, timestamps, `archived_at?`.
-**Máquina de estados (reduzida):** `Triagem → Ativo → Aguardando(motivo) → Encerrado → Arquivado`, + `Cancelado`. Reabertura `Encerrado→Ativo` é auditada. Histórico nunca é apagado.
+- **Organization** (raiz) → dependente: vínculos de acesso (Membership).
+- **User** (raiz) ↔ **OrganizationMembership** (entidade de associação usuário↔organização + papel).
+- **Client** (raiz) → dependentes: contatos e endereços (value objects), documentos vinculados (referência).
+- **Atendimento** (raiz) → dependentes: resumo/nota; anexos referenciam Document.
+- **Caso** (raiz) → dependentes: **CaseParticipant** (participante com papel), **TimelineEvent** (eventos do caso).
+- **Document** (raiz) → dependente: versões do documento.
 
-### CaseParticipant
-Uma **única** relação com papel controlado (evita tabela por papel):
-`id`, `organization_id`, `case_id`, `party_ref` (Client/Contact), `role`
-(`cliente|parte_contraria|representante|responsavel_financeiro|terceiro|advogado_externo`),
-`is_primary?`. Permite N clientes por Caso; uma pessoa em N Casos; troca de papel controlada e com histórico. `testemunha` adiado (JIT).
+**Decisão de modelagem — Cliente/Pessoa** `[reversível]`: usar **uma** entidade `Client`
+com discriminador **tipo de pessoa (PF | PJ)**, em vez de herança `Person`/`LegalEntity`
+(simplicidade antes de abstração).
 
-### Area (catálogo) / WorkType (catálogo)
-Configuráveis (ativar/desativar/ordenar); **não** enum rígido no código; não excluíveis
-com histórico vinculado. Áreas iniciais e tipos: ver PRODUCT_BRIEF/decisões do PO.
+## 5. Value Objects
+Somente onde agregam clareza:
+- **Nome/DisplayName** — identificação legível.
+- **Contact** — **tipo configurável** + valor (telefone, e-mail, WhatsApp, site, rede social);
+  **múltiplos**, sem lista rígida de plataformas (PRODUCT_REQUIREMENTS).
+- **Address** — endereço postal.
+- **CPF** (PF) / **CNPJ** (PJ) — documentos de identificação (opcionais no 1º contato).
+- **ProcessNumber** — número de processo (quando houver; o Caso pode não ter).
+- **FinancialClassification** — potencial financeiro (Alto/Médio/Baixo ou faixa).
+- **Period** — intervalo de datas (métricas, agenda futura).
+- **Estados** (OrganizationStatus, AtendimentoStatus, CaseStatus) — conjuntos controlados.
+- **Money** — valor monetário `[Planejado — módulo Financeiro; fora do MVP]`.
 
-### Document
-Metadados no banco; binário no storage (fora do banco). `id`, `organization_id`,
-vínculo com `client_id?`/`case_id?`/`atendimento_id?`, `category`, `original_name`
-(metadado), `physical_key` (não confiável como identidade), `content_hash`, `size`,
-`mime`, `version`, `confidentiality`, timestamps. Acesso sempre mediado por autorização.
+## 6. Relacionamentos (texto estruturado)
+- **Organization** contém (**composição por escopo**) Users(membership), Clients, Atendimentos, Casos e Documents.
+- **User** relaciona-se a **Organization** por **associação** via Membership (com papel).
+- **Client** origina/associa-se a **0..N Atendimentos**; a **conversão** de um Atendimento em **Cliente** é **explícita** e **rastreável** — define `clientId` e `convertedAt` — e uma **segunda conversão** do mesmo Atendimento é **rejeitada de forma previsível**. **Atendimento** convertido gera **1..N Casos**, que **preservam a origem** (`atendimentoId`).
+- **Caso** agrega **CaseParticipants** e **TimelineEvents** (**composição** — não existem sem o Caso).
+- **Document** associa-se a Client e/ou Caso e/ou Atendimento (**associação** de contexto).
+- **Area/WorkType** classificam Atendimento/Caso (**associação** com catálogo).
+- **Módulo (Advocacia)** **depende do Core** (usa Client/Caso), acrescentando dados próprios — **nunca** duplicando entidades do Core.
 
-### TimelineEvent (negócio) vs AuditLog (técnico)
-**TimelineEvent** (visível ao usuário): caso criado, documento incluído, status alterado,
-nota registrada, contato realizado, encerramento, reabertura. Append (não é fluxo de exclusão).
-**AuditLog** (técnico, não editável): `user`, `organization`, `entity`, `action`, `timestamp`,
-valores antes/depois quando adequado, origem, resultado, correlação. **Não** guarda conteúdo
-jurídico integral. Append-only em nível de aplicação (sem event sourcing).
+## 7. Invariantes (por agregado)
+- **Organization:** sempre possui nome; status ∈ {active, inactive}; nunca é excluída fisicamente.
+- **User/Membership:** opera sempre sob um vínculo organização+papel; autorização confirma o vínculo; usuário suspenso/desativado não opera.
+- **Client:** PF usa CPF e PJ usa CNPJ **quando informados** (opcionais no 1º contato); duplicidade gera **aviso, nunca bloqueio**; Client com Casos **não** é excluído (arquivável).
+- **Atendimento:** não convertido mantém **apenas** o Registro Comercial Mínimo; torna-se elegível a descarte **30 dias após a última interação relevante**; descarte é **manual, individual e autorizado só pelo Owner**, com impedimentos verificados; métricas anonimizadas podem ser preservadas. **Conversão em Cliente é explícita** (define `clientId` + `convertedAt` + `status`/`result` = convertido) e **não é idempotência silenciosa** — a reconversão é rejeitada; a origem do Caso permanece por `atendimentoId`.
+- **Caso:** pode existir **sem** número de processo; **nasce classificado** (área + tipo + potencial financeiro); histórico **jamais** é apagado (arquivamento); reabertura é auditada; preserva a origem (Atendimento) quando houver.
+- **CaseParticipant:** papel **controlado**; um Caso admite **N** clientes; troca de papel com histórico; não removível indevidamente.
+- **Document:** integridade por hash; nome físico **não** é identidade; acesso **sempre** autorizado; o binário **não** é enviado por padrão à Britus (ADR-0021).
+- **AuditLog:** append-only; **não** guarda conteúdo jurídico integral.
+- **Transversais:** escopo organizacional respeitado onde houver dados a isolar; custódia local; sem exclusão física de histórico jurídico.
 
-### Encerramento
-Não é entidade separada: atributos de desfecho em `Atendimento` (`result`,
-`non_conversion_reason`) e em `Caso` (`status=Encerrado` + motivo). Preserva histórico.
+## 8. Eventos de domínio previstos (alto nível — sem payload)
+Classificação: **CONFIRMADO** (agregado já materializado) · **CANDIDATO** (agregado
+especificado) · **FUTURO** (módulo planejado).
 
-### Métricas anonimizadas
-Derivadas/preservadas sem PII (período, canal, área, tipo, resultado, conflito sem detalhe).
-Ver estratégia no Data Model e Security & Privacy.
+- `OrganizationCreated` — **CONFIRMADO**.
+- `UserInvited` · `UserActivated` · `UserSuspended` · `ClientCreated` · `ClientArchived` ·
+  `AtendimentoRegistered` · `AtendimentoRelevantInteractionRecorded` · `AtendimentoConverted` ·
+  `AtendimentoClosedUnconverted` · `AtendimentoDiscarded` · `CaseOpened` · `CaseClosed` ·
+  `CaseReopened` · `CaseArchived` · `CaseParticipantLinked` · `DocumentAttached` ·
+  `DocumentVersioned` — **CANDIDATO**.
+- `InvoiceIssued` · `PaymentRecorded` (Financeiro) — **FUTURO**.
 
-## Invariantes transversais
-- Onde houver escopo organizacional, as consultas o respeitam; a materialização de
-  `organization_id` é decidida na Etapa 3+ (ADR-0020/0021).
-- Nada de exclusão física de histórico jurídico; usa-se arquivamento.
-- Duplicidade gera aviso, nunca bloqueio no 1º contato.
+> **Sem event sourcing** — eventos são conceituais e podem materializar-se como
+> `TimelineEvent` (negócio) ou `AuditLog` (técnico). O genérico `CaseStatusChanged` foi
+> **removido** por ser operação técnica/CRUD que duplica as transições específicas do Caso.
+
+## 9. Dependências entre módulos
+- **Core** = kernel compartilhado; **não depende** de nenhum módulo.
+- **Módulos de domínio** (Advocacia; futuros) **dependem do Core** e acrescentam conhecimento/recursos próprios; **não duplicam** entidades do Core (ADR-0020).
+- **Módulos não dependem diretamente entre si** — integração ocorre via Core/contratos.
+- **Distribuição & Licenciamento** (ADR-0022) atua **sobre** os módulos (instalar/atualizar/validar licença), **sem** acessar dados operacionais.
+- **Proibido:** Core → módulo; módulo → módulo (acoplamento direto); qualquer módulo enviar dados jurídicos operacionais à infraestrutura Britus por padrão.
+
+## 10. Fronteiras arquiteturais
+- **Domínio:** entidades, agregados, value objects, invariantes, eventos e máquinas de estado (conceitual). **Não** depende de aplicação, persistência, apresentação ou integrações.
+- **Aplicação (casos de uso):** orquestração (criar cliente, converter atendimento, encerrar caso) e autorização — `[Planejado]`.
+- **Persistência:** guarda e recupera os dados operacionais no ambiente do cliente; armazenamento de documentos separado — camada substituível.
+- **Apresentação:** cliente de apresentação e camada de entrada/saída via **contratos** — `[Planejado]`; não expõe o domínio diretamente.
+- **Integrações externas:** `[Planejado]`; fora do núcleo de domínio.
+> Regra de dependência: domínio no centro; aplicação, persistência e apresentação na borda. A **materialização tecnológica atual** dessas camadas está no **ARCHITECTURE_OVERVIEW**.
+
+## 11. Decisões em aberto
+*Não decididas aqui — registradas para decisão futura (ver RISK_REGISTER/Open Questions).*
+
+> A **validade conceitual dos estados** pertence ao domínio. Os **mecanismos físicos**
+> de enforcement, persistência e atualização de timestamps são definidos pelo modelo de
+> dados e pela infraestrutura de persistência.
+
+- Modelagem do módulo **Financeiro** (Money, parcelas, recibos, cobrança) — futuro.
+- Modelagem de **Agenda/Prazos** — futuro.
+- Fronteira e integração do **Assistente Jurídico Inteligente** — futuro.
+- **Autenticação/autorização:** biblioteca/estratégia (OQ-04), MFA, recuperação — a decidir na implementação.
+- Regras de multiplicidade **Atendimento → Caso** (quando um atendimento gera mais de um caso) — validar com PO/advogado.
+- Papéis de participante além dos iniciais (ex.: testemunha) — JIT.
+- **Registro mínimo de conflito de interesses** e **base legal/consentimento (LGPD)** como VO/entidade — pendentes de **validação jurídica** (RISK-01).
+- Governança de edição dos catálogos (Área/Tipo).

@@ -3,12 +3,22 @@
 Fronteira de **persistência** da BRITUS Platform: infraestrutura de banco
 **PostgreSQL + Drizzle** (configuração, pool, cliente, ambiente e migrations).
 
-## Estado atual (Etapa 2 — somente infraestrutura)
+## Estado atual (MACRO PACOTE 013 — fundação de persistência multiorganizacional)
 
-- **Sem tabelas de produto** (Opção A). O barrel `src/schema/index.ts` está vazio;
-  as tabelas começam na Etapa 3.
-- **Sem conexão automática**: importar `@britus/db` não abre pool, não conecta e
-  não exige `DATABASE_URL`. Tudo é feito por **fábricas explícitas**.
+- **Schemas materializados:** `organizations`, `clients`, `atendimentos`, `cases`
+  (`src/schema/`). Entidades operacionais são **tenant-aware** (`organization_id`
+  obrigatório), com FKs coerentes, índices por organização e **unicidade documental
+  parcial por organização** (`(organization_id, cpf|cnpj) WHERE ... is not null`).
+- **Adapters Drizzle** dos ports do workflow (`src/adapters/`): Client, Atendimento e
+  Case — **sempre org-scoped**; `findById` só retorna dentro da organização, a conversão
+  atinge apenas a própria organização; erros de infraestrutura são **traduzidos** sem
+  vazar SQL/detalhes.
+- **Migrations GERADAS, NÃO APLICADAS:** `0000` (organizations) e `0001`
+  (clients/atendimentos/cases). Nenhum banco foi criado ou migrado — não há PostgreSQL
+  disponível neste ambiente (bloqueio **ambiental**, não estrutural).
+- **Sem conexão automática**: importar `@britus/db` não abre pool, não conecta e não
+  exige `DATABASE_URL`. Tudo por **fábricas explícitas**; a escolha memória vs Drizzle é
+  feita explicitamente na composição da API.
 
 ## API pública
 
@@ -16,7 +26,10 @@ Fronteira de **persistência** da BRITUS Platform: infraestrutura de banco
   ambiente fornecido; lança erro (sem expor a credencial) se ausente/vazia.
 - `createDatabasePool(config)` — cria explicitamente o pool `pg`.
 - `createDatabaseClient(pool)` — cria explicitamente a instância Drizzle.
-- `schema` — namespace do schema (vazio nesta etapa).
+- `schema` — namespace dos schemas (`organizations`, `clients`, `atendimentos`, `cases`).
+- `createDrizzlePersistence(db)` — compõe os adapters org-scoped dos ports do workflow
+  (`clients`, `atendimentos`, `cases`); **não** abre conexão. Também exportados
+  individualmente (`createDrizzle{Client,Atendimento,Case}Store`) e `PersistenceError`.
 
 ## Ambiente
 
@@ -34,6 +47,14 @@ Fronteira de **persistência** da BRITUS Platform: infraestrutura de banco
 
 ## Isolamento por organização
 
-Tabelas tenant-scoped seguirão o [ADR-0017](../../docs/02-decisions/ADR-0017-multitenancy-organization.md).
-A implementação começa na **Etapa 3**; este pacote ainda **não** oferece isolamento
-materializado.
+Materializado no schema (FKs para `organizations`, índices por `organization_id`,
+unicidade documental parcial por organização) e **imposto nos adapters** (toda consulta e
+mutação recebe e aplica `organizationId`; nunca por ID global). O contrato comportamental
+compartilhado (`@britus/application/testing`) garante que os adapters **em memória** e
+**Drizzle** cumpram as mesmas regras observáveis.
+
+**Prova de integração real (bloqueada por ambiente):** o teste
+`src/adapters/drizzle-contract.integration.test.ts` executa o mesmo contrato contra
+PostgreSQL. Ele só roda com `DATABASE_URL` **e** `BRITUS_DB_TEST_DISPOSABLE=1` (banco
+descartável, pois **trunca** as tabelas). Sem isso, é `skip`. Desbloqueio: subir um
+Postgres descartável, `db:migrate`, então `DATABASE_URL=… BRITUS_DB_TEST_DISPOSABLE=1 pnpm test`.

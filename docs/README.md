@@ -18,7 +18,7 @@ repositório, é revisada em Pull Request e é fonte única de verdade por assun
 (raiz)  AI_INDEX.md — ponto de entrada para IAs
 
 docs/
-├── 00-foundation/    PROJECT_CHARTER, PRODUCT_BRIEF, CONSOLIDATION_LOG
+├── 00-foundation/    MASTER_CONSOLIDATED_REPORT, PROJECT_CHARTER, PRODUCT_BRIEF, CONSOLIDATION_LOG
 ├── 01-governance/    RISK_REGISTER (+ Open Questions)
 ├── 02-decisions/     ADRs (índice + ADR-0003, 0016–0022)
 ├── 04-sprints/       SPR-0009
@@ -52,6 +52,7 @@ documento real dela existir** (Just-in-Time) — não se criam pastas vazias.
 
 ## Ordem de leitura recomendada
 
+0. `00-foundation/MASTER_CONSOLIDATED_REPORT.md` — âncora de governança, limites, estado e continuidade
 1. `AI_INDEX.md` (raiz) e `00-foundation/PROJECT_CHARTER.md`
 2. `00-foundation/PRODUCT_BRIEF.md` e `06-domain/GLOSSARY.md`
 3. `07-architecture/ARCHITECTURE_OVERVIEW.md`

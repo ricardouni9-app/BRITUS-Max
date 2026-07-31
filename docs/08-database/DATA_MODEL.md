@@ -14,14 +14,23 @@ related: [DOC-DOMAIN-MODEL, ADR-0020, ADR-0021, DOC-SECURITY-PRIVACY]
 
 # Data Model — Núcleo Operacional
 
-> **Modelo lógico local (PostgreSQL + Drizzle), no ambiente do cliente** (ADR-0021).
-> Esboço **provisório e ilustrativo** do núcleo: as tabelas e a **materialização de
-> `organization_id`** serão **decididas na modelagem da Etapa 3+** — nesta etapa **não**
-> se impõe nem se elimina `organization_id` (ADR-0020/0021). `Organization` é conceito
-> do **Core**; o isolamento ocorre **dentro** do ambiente do cliente e uma instalação
-> **não** é obrigatoriamente mono-organização. Convenções previstas: `id` UUIDv7,
-> `timestamptz` UTC, `created_at`/`updated_at`, `archived_at` onde há arquivamento,
+> **Modelo lógico (PostgreSQL + Drizzle), sob custódia local** (ADR-0021). As entidades
+> operacionais (`clients`, `atendimentos`, `cases`) são **tenant-aware**: `organization_id`
+> é **obrigatório** (decisão do MACRO PACOTE 012) e **materializado** no schema Drizzle
+> (MACRO PACOTE 013), com FKs para `organizations`, índices por organização e **unicidade
+> documental parcial por organização** (`(organization_id, cpf|cnpj) WHERE ... is not null`).
+> `Organization` é conceito do **Core**; o isolamento ocorre **dentro** do ambiente do
+> cliente e uma instalação **não** é obrigatoriamente mono-organização. Convenções: `id`
+> UUIDv7, `timestamptz` UTC, `created_at`/`updated_at`, `archived_at` onde há arquivamento,
 > `deleted_at` **apenas** onde a exclusão lógica for realmente necessária.
+>
+> **Estado de materialização:** migrações `0000` (organizations), `0001`
+> (clients/atendimentos/cases) e `0002` (identidade/autenticação: `users`,
+> `organization_memberships`, `platform_identities`, `credentials`, `sessions`) **aplicadas
+> e verificadas em PostgreSQL descartável** (MP-013 e MP-014), com FKs, índices e uniques
+> (`users_email`, `(organization_id,user_id)`, `credentials(subject_type,subject_id)`,
+> `sessions.token_hash`, `platform_identities.kind` singleton do Criador). Papel só no
+> membership; credencial guarda apenas hash Argon2id; sessão guarda apenas o hash do token.
 
 ## Diagrama ER (Mermaid)
 ```mermaid
@@ -68,11 +77,12 @@ múltiplos, sem lista rígida de plataformas), endereços. Reutilizáveis (Captu
 
 ### atendimentos
 PK `id`; FK `organization_id`; FK `client_id?`; `channel_origin`; FK `area_id?`,
-FK `work_type_id?`; `status`; `result?`; `non_conversion_reason?`; `assigned_user_id`;
+FK `work_type_id?`; `status`; `result?`; `non_conversion_reason?`; `converted_at?`; `assigned_user_id`;
 `summary` (texto curto — sem constraint rígida de tamanho, ver NFR/UX); `conflict_flag`;
 `first_contact_at`; `last_relevant_interaction_at`; `discard_eligible_at` (derivado:
 `last_relevant_interaction_at + 30d`); `discarded_at?`; `discarded_by?`; `anonymized_at?`.
 - Índices: `organization_id`, `status`, `last_relevant_interaction_at`.
+- **Conversão em Cliente (explícita):** define `client_id`, `converted_at` e `status`/`result` = convertido; segunda conversão é rejeitada; a origem do Caso é preservada por `cases.atendimento_id`. `Lead` = atendimento em recepção (sem entidade separada).
 - Após descarte: PII e `summary` removidos/anonimizados; métricas anonimizadas preservadas.
 
 ### cases

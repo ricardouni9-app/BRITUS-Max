@@ -24,6 +24,8 @@ no ambiente do cliente, com **dados sob custódia do cliente** (ADR-0021). Core
 universal + módulos acopláveis (ADR-0020). Ver `docs/00-foundation/PROJECT_CHARTER.md`.
 
 ## Ordem de leitura
+0. **`docs/00-foundation/MASTER_CONSOLIDATED_REPORT.md`** — âncora de governança, limites,
+   estado e continuidade (**ler primeiro**).
 1. `docs/00-foundation/PROJECT_CHARTER.md` e `PRODUCT_BRIEF.md`
 2. `docs/06-domain/GLOSSARY.md` e `DOMAIN_MODEL.md`
 3. `docs/07-architecture/ARCHITECTURE_OVERVIEW.md`
@@ -43,3 +45,7 @@ universal + módulos acopláveis (ADR-0020). Ver `docs/00-foundation/PROJECT_CHA
 Sprint 1 em andamento. Etapas concluídas: 0.9 (arquitetura), 1 (workspace), 2 (banco).
 Etapa 2.5: consolidação documental (esta). **Não** avançar para entidades de negócio
 sem autorização. Índice de decisões: `docs/02-decisions/README.md`.
+
+Estado técnico consolidado (Macro Pacotes 004–011, **relatado e auditado conceitualmente**):
+ver `docs/00-foundation/MASTER_CONSOLIDATED_REPORT.md` §12. Limites inultrapassáveis e
+protocolo de dúvidas/alteração: §§6–9 do mesmo documento.

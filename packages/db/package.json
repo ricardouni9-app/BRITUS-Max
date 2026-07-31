@@ -17,6 +17,8 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@britus/application": "workspace:*",
+    "@britus/contracts": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "pg": "^8.22.0",
     "uuidv7": "^1.2.1"
