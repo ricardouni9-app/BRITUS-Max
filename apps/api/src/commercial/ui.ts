@@ -43,7 +43,7 @@ h2.big{font-size:18px;margin:0 0 2px}
   <section class="stage" aria-live="polite"><div class="scene"><h1 id="sceneTitle"></h1><div id="sceneCaption" class="caption"></div></div></section>
   <div class="pcontrols"><button id="voiceBtn" class="ghost">Ouvir apresentação</button><button id="pauseBtn" class="ghost">Pausar</button><div class="progress"><i id="progressFill"></i></div></div>
   <div class="trial pan">
-    <h2 class="big">Conheça a BRITUS na sua operação</h2><p class="h">Solicite um teste assistido. A advocacia é nossa prioridade inicial, e a estrutura atende diferentes áreas profissionais.</p>
+    <h2 class="big">Faça um teste preenchendo os dados abaixo</h2><p class="h">O acesso será preparado para você conhecer a BRITUS. A advocacia é nossa prioridade inicial, e a estrutura atende diferentes áreas profissionais.</p>
     <div class="trialgrid"><div><label>Nome</label><input id="tname" autocomplete="name"/></div><div><label>E-mail</label><input id="temail" type="email" autocomplete="email"/></div><div><label>Telefone (opcional)</label><input id="tphone" autocomplete="tel"/></div><div><label>Área de atuação</label><input id="tsegment" placeholder="Ex.: advocacia, consultoria, serviços"/></div></div>
     <input id="twebsite" class="hp" tabindex="-1" autocomplete="off"/>
     <label class="check"><input id="tconsent" type="checkbox"/> Autorizo o contato da BRITUS sobre o teste e futuras informações relacionadas ao produto. Posso solicitar a interrupção a qualquer momento.</label>
@@ -108,8 +108,10 @@ const SCENES=[
 ];
 let sceneIndex=0,playing=true,voiced=false,sceneStarted=Date.now();const SCENE_MS=9000;
 function renderScene(){const s=SCENES[sceneIndex];$('sceneTitle').textContent=s[0];$('sceneCaption').innerHTML=s[1].map(x=>'<span>'+x+'</span>').join('');sceneStarted=Date.now();if(voiced)speakScene()}
-function speakScene(){speechSynthesis.cancel();const s=SCENES[sceneIndex];const u=new SpeechSynthesisUtterance([s[0],...s[1]].join(' '));u.lang='pt-BR';u.rate=.94;u.pitch=.96;speechSynthesis.speak(u)}
-setInterval(()=>{if(!playing)return;const p=Math.min(1,(Date.now()-sceneStarted)/SCENE_MS);$('progressFill').style.width=(p*100)+'%';if(p>=1){sceneIndex=(sceneIndex+1)%SCENES.length;renderScene()}},250);
+function finishPresentation(){playing=false;speechSynthesis.cancel();$('progressFill').style.width='100%';$('pauseBtn').textContent='Rever apresentação';$('trialBtn').focus({preventScroll:true});document.querySelector('.trial').scrollIntoView({behavior:'smooth',block:'start'})}
+function advanceScene(){if(sceneIndex>=SCENES.length-1){finishPresentation();return}sceneIndex+=1;renderScene()}
+function speakScene(){speechSynthesis.cancel();const s=SCENES[sceneIndex];const spoken=[s[0],...s[1]].join(' ').replaceAll('BRITUS','Brítus');const u=new SpeechSynthesisUtterance(spoken);u.lang='pt-BR';u.rate=.94;u.pitch=.96;u.onend=()=>{if(voiced&&playing)advanceScene()};speechSynthesis.speak(u)}
+setInterval(()=>{if(!playing||voiced)return;const p=Math.min(1,(Date.now()-sceneStarted)/SCENE_MS);$('progressFill').style.width=(((sceneIndex+p)/SCENES.length)*100)+'%';if(p>=1)advanceScene()},250);
 async function api(method,url,body){
   const h={'content-type':'application/json'};
   if(method!=='GET'&&csrf)h['x-csrf-token']=csrf;
@@ -170,8 +172,8 @@ async function mkCase(){
 }
 $('loginBtn').onclick=doLogin;$('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 $('openLogin').onclick=()=>show('login');$('trialBtn').onclick=trial;
-$('voiceBtn').onclick=()=>{voiced=!voiced;$('voiceBtn').textContent=voiced?'Desativar narração':'Ouvir apresentação';if(voiced)speakScene();else speechSynthesis.cancel()};
-$('pauseBtn').onclick=()=>{playing=!playing;$('pauseBtn').textContent=playing?'Pausar':'Continuar';if(!playing)speechSynthesis.pause();else speechSynthesis.resume()};
+$('voiceBtn').onclick=()=>{voiced=!voiced;$('voiceBtn').textContent=voiced?'Desativar narração':'Ouvir apresentação';if(voiced){playing=true;speakScene()}else{speechSynthesis.cancel();sceneStarted=Date.now()}};
+$('pauseBtn').onclick=()=>{if(!playing&&sceneIndex===SCENES.length-1){sceneIndex=0;playing=true;renderScene();$('pauseBtn').textContent='Pausar';scrollTo({top:0,behavior:'smooth'});return}playing=!playing;$('pauseBtn').textContent=playing?'Pausar':'Continuar';if(!playing)speechSynthesis.pause();else{speechSynthesis.resume();sceneStarted=Date.now()}};
 $('logout').onclick=logout;$('logout2').onclick=logout;
 $('cpbtn').onclick=mkClient;$('atbtn').onclick=mkAtend;$('csbtn').onclick=mkCase;
 renderScene();boot();
