@@ -9,7 +9,7 @@ const DEFAULT_AREA = "01920000-0000-7000-8000-000000000001";
 const HTML = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>BRITUS — Gestão Jurídica</title>
+<title>BRITUS — Operações organizadas</title>
 <style>
 :root{--bg:#f4f6f9;--pan:#fff;--ink:#1c2733;--mut:#5a6b7b;--line:#e2e8f0;--acc:#1e5fbf;--accd:#164a97;--ok:#127a3e;--err:#b3261e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
@@ -29,10 +29,26 @@ button:hover{background:var(--accd)}button.ghost{background:#eef3fb;color:var(--
 .msg{margin-top:12px;font-size:13px;min-height:18px}.msg.ok{color:var(--ok)}.msg.err{color:var(--err)}
 .center{max-width:400px;margin:8vh auto}.hidden{display:none}
 h2.big{font-size:18px;margin:0 0 2px}
+.promo{max-width:1040px;margin:24px auto;padding:0 18px}.stage{min-height:430px;border-radius:22px;padding:42px;background:linear-gradient(135deg,#071a38,#1e5fbf);color:#fff;display:grid;place-items:center;text-align:center;position:relative;overflow:hidden}
+.stage:before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:#fff2;filter:blur(30px);right:-160px;top:-190px}.scene{position:relative;max-width:760px}.scene h1{font-size:clamp(30px,5vw,54px);line-height:1.08;margin:0 0 20px}.caption{font-size:clamp(17px,2vw,22px);line-height:1.55}.caption span{display:block}.pcontrols{display:flex;gap:10px;align-items:center;margin-top:14px}.pcontrols button{width:auto;margin:0}.progress{height:5px;background:#ffffff36;border-radius:9px;overflow:hidden;flex:1}.progress i{display:block;height:100%;background:#fff;width:0;transition:width .25s}.trial{margin:18px auto 0;max-width:720px}.trialgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;gap:9px;align-items:flex-start;color:var(--mut);font-size:12px}.check input{width:auto;margin-top:3px}.hp{position:absolute;left:-9999px}.topcta{width:auto;margin:0;padding:8px 13px}
+@media(max-width:700px){.grid,.trialgrid{grid-template-columns:1fr}.stage{min-height:390px;padding:28px 18px}.promo{padding:0 10px}}
 </style></head><body>
-<div class="top"><span class="brand">BRITUS<b> · Jurídico</b></span><span class="sp"></span>
+<div class="top"><span class="brand">BRITUS<b> · Operações organizadas</b></span><span class="sp"></span>
+  <button id="openLogin" class="ghost topcta">Entrar</button>
   <span id="orgtag" class="orgtag hidden"></span>
   <button id="logout" class="link hidden">Sair</button>
+</div>
+
+<div id="promoView" class="promo">
+  <section class="stage" aria-live="polite"><div class="scene"><h1 id="sceneTitle"></h1><div id="sceneCaption" class="caption"></div></div></section>
+  <div class="pcontrols"><button id="voiceBtn" class="ghost">Ouvir apresentação</button><button id="pauseBtn" class="ghost">Pausar</button><div class="progress"><i id="progressFill"></i></div></div>
+  <div class="trial pan">
+    <h2 class="big">Conheça a BRITUS na sua operação</h2><p class="h">Solicite um teste assistido. A advocacia é nossa prioridade inicial, e a estrutura atende diferentes áreas profissionais.</p>
+    <div class="trialgrid"><div><label>Nome</label><input id="tname" autocomplete="name"/></div><div><label>E-mail</label><input id="temail" type="email" autocomplete="email"/></div><div><label>Telefone (opcional)</label><input id="tphone" autocomplete="tel"/></div><div><label>Área de atuação</label><input id="tsegment" placeholder="Ex.: advocacia, consultoria, serviços"/></div></div>
+    <input id="twebsite" class="hp" tabindex="-1" autocomplete="off"/>
+    <label class="check"><input id="tconsent" type="checkbox"/> Autorizo o contato da BRITUS sobre o teste e futuras informações relacionadas ao produto. Posso solicitar a interrupção a qualquer momento.</label>
+    <button id="trialBtn">Solicitar teste</button><div id="tmsg" class="msg"></div>
+  </div>
 </div>
 
 <div id="loginView" class="center pan hidden">
@@ -81,6 +97,19 @@ h2.big{font-size:18px;margin:0 0 2px}
 const AREA=${JSON.stringify(DEFAULT_AREA)};
 let csrf=null;
 const $=id=>document.getElementById(id);
+const SCENES=[
+  ['Organize o que move sua operação.',['Clientes, atendimentos e responsabilidades deixam de ficar dispersos.','A BRITUS transforma informação em continuidade.']],
+  ['Comece pelas pessoas.',['Registre clientes e mantenha o histórico essencial em um só lugar.','Encontre contexto antes de tomar decisões.']],
+  ['Acompanhe cada atendimento.',['Da primeira conversa ao próximo passo, sua equipe trabalha com clareza.','Nada importante depende apenas da memória.']],
+  ['Transforme demandas em trabalho estruturado.',['Casos, projetos e atividades seguem um fluxo compreensível.','A estrutura se adapta à realidade da sua área.']],
+  ['Trabalhe com segurança.',['Cada organização possui seu próprio contexto de acesso.','Identidade, permissões e operações são validadas no servidor.']],
+  ['Começamos pela advocacia.',['Ela é nossa prioridade comercial inicial.','A BRITUS, porém, foi construída para apoiar diferentes atividades profissionais.']],
+  ['Experimente com acompanhamento humano.',['Solicite um teste assistido e conheça a aplicação na sua realidade.','Se ainda não for o momento de contratar, poderemos manter contato com sua autorização.']]
+];
+let sceneIndex=0,playing=true,voiced=false,sceneStarted=Date.now();const SCENE_MS=9000;
+function renderScene(){const s=SCENES[sceneIndex];$('sceneTitle').textContent=s[0];$('sceneCaption').innerHTML=s[1].map(x=>'<span>'+x+'</span>').join('');sceneStarted=Date.now();if(voiced)speakScene()}
+function speakScene(){speechSynthesis.cancel();const s=SCENES[sceneIndex];const u=new SpeechSynthesisUtterance([s[0],...s[1]].join(' '));u.lang='pt-BR';u.rate=.94;u.pitch=.96;speechSynthesis.speak(u)}
+setInterval(()=>{if(!playing)return;const p=Math.min(1,(Date.now()-sceneStarted)/SCENE_MS);$('progressFill').style.width=(p*100)+'%';if(p>=1){sceneIndex=(sceneIndex+1)%SCENES.length;renderScene()}},250);
 async function api(method,url,body){
   const h={'content-type':'application/json'};
   if(method!=='GET'&&csrf)h['x-csrf-token']=csrf;
@@ -89,11 +118,12 @@ async function api(method,url,body){
   return {status:r.status,ok:r.status<300,data:d};
 }
 function errMsg(d){return (d&&d.error&&d.error.message)||'Falha na operação'}
-function show(view){$('loginView').classList.toggle('hidden',view!=='login');$('appView').classList.toggle('hidden',view!=='app');
+function show(view){$('promoView').classList.toggle('hidden',view!=='promo');$('loginView').classList.toggle('hidden',view!=='login');$('appView').classList.toggle('hidden',view!=='app');
+  $('openLogin').classList.toggle('hidden',view==='app');
   $('logout').classList.toggle('hidden',view!=='app');$('orgtag').classList.toggle('hidden',view!=='app');}
 async function boot(){
   const s=await api('GET','/auth/session');
-  if(!s.data||!s.data.authenticated){show('login');return}
+  if(!s.data||!s.data.authenticated){show('promo');return}
   csrf=s.data.csrfToken;
   let org=s.data.activeOrganizationId;
   if(!org&&s.data.memberships&&s.data.memberships.length){
@@ -111,6 +141,11 @@ async function doLogin(){
   csrf=r.data.csrfToken;await boot();
 }
 async function logout(){await api('POST','/auth/logout');csrf=null;location.reload()}
+async function trial(){
+  $('tmsg').className='msg';$('tmsg').textContent='Enviando…';
+  const r=await api('POST','/public/trial-interest',{name:$('tname').value,email:$('temail').value,phone:$('tphone').value,segment:$('tsegment').value,website:$('twebsite').value,consent:$('tconsent').checked});
+  $('tmsg').className=r.ok?'msg ok':'msg err';$('tmsg').textContent=r.ok?r.data.message:errMsg(r.data);
+}
 function addItem(listId,html){const l=$(listId);l.innerHTML='<div class="it">'+html+'</div>'+l.innerHTML}
 async function mkClient(){
   $('cpmsg').className='msg';$('cpmsg').textContent='Salvando…';
@@ -134,9 +169,12 @@ async function mkCase(){
   addItem('cslist','<b>'+r.data.title+'</b> <small>'+r.data.status+' · '+r.data.financialClassification+'</small>');
 }
 $('loginBtn').onclick=doLogin;$('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+$('openLogin').onclick=()=>show('login');$('trialBtn').onclick=trial;
+$('voiceBtn').onclick=()=>{voiced=!voiced;$('voiceBtn').textContent=voiced?'Desativar narração':'Ouvir apresentação';if(voiced)speakScene();else speechSynthesis.cancel()};
+$('pauseBtn').onclick=()=>{playing=!playing;$('pauseBtn').textContent=playing?'Pausar':'Continuar';if(!playing)speechSynthesis.pause();else speechSynthesis.resume()};
 $('logout').onclick=logout;$('logout2').onclick=logout;
 $('cpbtn').onclick=mkClient;$('atbtn').onclick=mkAtend;$('csbtn').onclick=mkCase;
-boot();
+renderScene();boot();
 </script></body></html>`;
 
 export function registerCommercialUi(app: FastifyInstance): void {

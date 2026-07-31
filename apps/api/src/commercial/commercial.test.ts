@@ -31,6 +31,14 @@ describe("modo comercial (memory) — segurança e fluxo", () => {
     expect((await c.app.inject({ method: "POST", url: "/cases", payload: {} })).statusCode).toBe(401);
   });
 
+  it("cadastra interesse em teste somente com consentimento explícito", async () => {
+    const denied = await c.app.inject({ method: "POST", url: "/public/trial-interest", payload: { name: "Ana", email: "ana@example.com", website: "", consent: false } });
+    expect(denied.statusCode).toBe(400);
+    const accepted = await c.app.inject({ method: "POST", url: "/public/trial-interest", payload: { name: "Ana", email: "ana@example.com", segment: "Consultoria", website: "", consent: true } });
+    expect(accepted.statusCode).toBe(201);
+    expect(accepted.json().id).toBeTypeOf("string");
+  });
+
   it("login → sessão → org ativa → cria cliente/atendimento/caso via rotas reais", async () => {
     const login = await c.app.inject({ method: "POST", url: "/auth/login", payload: { email: "op@britus.test", password: "senha-forte-123" } });
     expect(login.statusCode).toBe(200);

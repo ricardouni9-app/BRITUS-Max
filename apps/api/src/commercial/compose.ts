@@ -117,6 +117,17 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
       authorizedRegisterAtendimento,
       authorizedOpenCase,
       authorizedConvert,
+      registerTrialInterest: async (input) => {
+        const id = uuidv7();
+        if (pool) {
+          await pool.query(
+            `insert into commercial_leads (id,name,email,phone,segment,consent_at,source,status)
+             values ($1,$2,$3,$4,$5,now(),$6,'new')`,
+            [id, input.name, input.email, input.phone ?? null, input.segment ?? null, input.source],
+          );
+        }
+        return { id };
+      },
       serveUi: true,
     },
   });

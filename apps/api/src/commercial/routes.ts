@@ -20,9 +20,36 @@ export interface CommercialRoutesDeps {
   readonly authorizedRegisterAtendimento: UseCase<AuthorizedInput, unknown>;
   readonly authorizedOpenCase: UseCase<AuthorizedInput, unknown>;
   readonly authorizedConvert: UseCase<AuthorizedInput, unknown>;
+  readonly registerTrialInterest?: (input: {
+    name: string; email: string; phone?: string; segment?: string;
+    consent: true; source: "promotional-tour";
+  }) => Promise<{ id: string }>;
 }
 
 export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialRoutesDeps): void {
+  const attempts = new Map<string, { count: number; resetAt: number }>();
+
+  app.post("/public/trial-interest", async (request, reply) => {
+    if (!deps.registerTrialInterest) return reply.status(503).send({ error: { code: "UNAVAILABLE", message: "Cadastro temporariamente indisponível." } });
+    const now = Date.now();
+    const previous = attempts.get(request.ip);
+    const bucket = !previous || previous.resetAt <= now ? { count: 0, resetAt: now + 60_000 } : previous;
+    bucket.count += 1;
+    attempts.set(request.ip, bucket);
+    if (bucket.count > 5) return reply.status(429).send({ error: { code: "RATE_LIMITED", message: "Aguarde um minuto e tente novamente." } });
+    const b = request.body as Record<string, unknown> | null;
+    if (!b || b.website !== "" || typeof b.name !== "string" || b.name.trim().length < 2 ||
+        typeof b.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email) || b.consent !== true) {
+      return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: "Revise os dados e confirme a autorização de contato." } });
+    }
+    const saved = await deps.registerTrialInterest({
+      name: b.name.trim().slice(0, 160), email: b.email.trim().toLowerCase().slice(0, 320),
+      phone: typeof b.phone === "string" ? b.phone.trim().slice(0, 40) : undefined,
+      segment: typeof b.segment === "string" ? b.segment.trim().slice(0, 100) : undefined,
+      consent: true, source: "promotional-tour",
+    });
+    return reply.status(201).send({ id: saved.id, message: "Cadastro recebido. Entraremos em contato para organizar seu teste." });
+  });
   async function send<T>(reply: FastifyReply, r: Result<T, ApplicationError>, ok: number): Promise<void> {
     if (r.ok) {
       await reply.status(ok).send(r.value);
