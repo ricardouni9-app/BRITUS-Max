@@ -21,6 +21,10 @@ export const platformIdentitySchema = z.object({
   id: uuidSchema,
   kind: platformIdentityKindSchema,
   label: z.string().trim().min(1).max(120),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().trim().max(40).nullable().optional(),
+  whatsapp: z.string().trim().max(40).nullable().optional(),
+  website: z.string().url().max(500).nullable().optional(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 });

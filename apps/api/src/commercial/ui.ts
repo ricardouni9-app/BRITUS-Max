@@ -104,10 +104,11 @@ const SCENES=[
   ['Transforme demandas em trabalho estruturado.',['Casos, projetos e atividades seguem um fluxo compreensível.','A estrutura se adapta à realidade da sua área.']],
   ['Trabalhe com segurança.',['Cada organização possui seu próprio contexto de acesso.','Identidade, permissões e operações são validadas no servidor.']],
   ['Começamos pela advocacia.',['Ela é nossa prioridade comercial inicial.','A BRITUS, porém, foi construída para apoiar diferentes atividades profissionais.']],
-  ['Experimente com acompanhamento humano.',['Solicite um teste assistido e conheça a aplicação na sua realidade.','Se ainda não for o momento de contratar, poderemos manter contato com sua autorização.']]
+  ['Experimente com acompanhamento humano.',['Solicite um teste assistido e conheça a aplicação na sua realidade.','Se precisar de orientação, o WhatsApp oficial da BRITUS aparecerá ao final.','Se ainda não for o momento de contratar, poderemos manter contato com sua autorização.']]
 ];
 let sceneIndex=0,playing=true,voiced=false,sceneStarted=Date.now();const SCENE_MS=9000;
 function renderScene(){const s=SCENES[sceneIndex];$('sceneTitle').textContent=s[0];$('sceneCaption').innerHTML=s[1].map(x=>'<span>'+x+'</span>').join('');sceneStarted=Date.now();if(voiced)speakScene()}
+async function loadPlatformContact(){const r=await api('GET','/public/platform-contact');if(!r.ok||!r.data)return;const lines=[];if(r.data.whatsapp)lines.push('WhatsApp: '+r.data.whatsapp+'.');if(r.data.phone&&r.data.phone!==r.data.whatsapp)lines.push('Telefone: '+r.data.phone+'.');if(r.data.email)lines.push('E-mail: '+r.data.email+'.');if(r.data.website)lines.push('Site: '+r.data.website+'.');if(!lines.length)return;SCENES[SCENES.length-1][1].splice(1,1,...lines);const note=document.createElement('p');note.className='h';note.textContent=lines.join(' ');document.querySelector('.trial').appendChild(note);if(sceneIndex===SCENES.length-1)renderScene()}
 function finishPresentation(){playing=false;speechSynthesis.cancel();$('progressFill').style.width='100%';$('pauseBtn').textContent='Rever apresentação';$('trialBtn').focus({preventScroll:true});document.querySelector('.trial').scrollIntoView({behavior:'smooth',block:'start'})}
 function advanceScene(){if(sceneIndex>=SCENES.length-1){finishPresentation();return}sceneIndex+=1;renderScene()}
 function speakScene(){speechSynthesis.cancel();const s=SCENES[sceneIndex];const spoken=[s[0],...s[1]].join(' ').replaceAll('BRITUS','Brítus');const u=new SpeechSynthesisUtterance(spoken);u.lang='pt-BR';u.rate=.94;u.pitch=.96;u.onend=()=>{if(voiced&&playing)advanceScene()};speechSynthesis.speak(u)}
@@ -176,7 +177,7 @@ $('voiceBtn').onclick=()=>{voiced=!voiced;$('voiceBtn').textContent=voiced?'Desa
 $('pauseBtn').onclick=()=>{if(!playing&&sceneIndex===SCENES.length-1){sceneIndex=0;playing=true;renderScene();$('pauseBtn').textContent='Pausar';scrollTo({top:0,behavior:'smooth'});return}playing=!playing;$('pauseBtn').textContent=playing?'Pausar':'Continuar';if(!playing)speechSynthesis.pause();else{speechSynthesis.resume();sceneStarted=Date.now()}};
 $('logout').onclick=logout;$('logout2').onclick=logout;
 $('cpbtn').onclick=mkClient;$('atbtn').onclick=mkAtend;$('csbtn').onclick=mkCase;
-renderScene();boot();
+renderScene();loadPlatformContact();boot();
 </script></body></html>`;
 
 export function registerCommercialUi(app: FastifyInstance): void {

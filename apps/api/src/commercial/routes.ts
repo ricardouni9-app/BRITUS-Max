@@ -24,10 +24,19 @@ export interface CommercialRoutesDeps {
     name: string; email: string; phone?: string; segment?: string;
     consent: true; source: "promotional-tour";
   }) => Promise<{ id: string }>;
+  readonly getPlatformContact?: () => Promise<{
+    label: string; email: string | null; phone: string | null;
+    whatsapp: string | null; website: string | null;
+  } | null>;
 }
 
 export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialRoutesDeps): void {
   const attempts = new Map<string, { count: number; resetAt: number }>();
+
+  app.get("/public/platform-contact", async (_request, reply) => {
+    const contact = await deps.getPlatformContact?.();
+    return reply.status(200).send(contact ?? { label: "BRITUS", email: null, phone: null, whatsapp: null, website: null });
+  });
 
   app.post("/public/trial-interest", async (request, reply) => {
     if (!deps.registerTrialInterest) return reply.status(503).send({ error: { code: "UNAVAILABLE", message: "Cadastro temporariamente indisponível." } });

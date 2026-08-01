@@ -39,6 +39,12 @@ describe("modo comercial (memory) — segurança e fluxo", () => {
     expect(accepted.json().id).toBeTypeOf("string");
   });
 
+  it("expõe contato institucional sem telefone fixado no frontend", async () => {
+    const response = await c.app.inject({ method: "GET", url: "/public/platform-contact" });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ label: "BRITUS", email: null, phone: null, whatsapp: null, website: null });
+  });
+
   it("login → sessão → org ativa → cria cliente/atendimento/caso via rotas reais", async () => {
     const login = await c.app.inject({ method: "POST", url: "/auth/login", payload: { email: "op@britus.test", password: "senha-forte-123" } });
     expect(login.statusCode).toBe(200);

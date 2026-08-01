@@ -12,6 +12,10 @@ export const platformIdentities = pgTable(
       .$defaultFn(() => uuidv7()),
     kind: text("kind").notNull().default("creator").$type<"creator">(),
     label: text("label").notNull(),
+    email: text("email"),
+    phone: text("phone"),
+    whatsapp: text("whatsapp"),
+    website: text("website"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

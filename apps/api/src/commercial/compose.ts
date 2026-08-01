@@ -128,6 +128,13 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
         }
         return { id };
       },
+      getPlatformContact: async () => {
+        if (!pool) return { label: "BRITUS", email: null, phone: null, whatsapp: null, website: null };
+        const result = await pool.query<{ label: string; email: string | null; phone: string | null; whatsapp: string | null; website: string | null }>(
+          "select label, email, phone, whatsapp, website from platform_identities where kind='creator' limit 1",
+        );
+        return result.rows[0] ?? { label: "BRITUS", email: null, phone: null, whatsapp: null, website: null };
+      },
       serveUi: true,
     },
   });
