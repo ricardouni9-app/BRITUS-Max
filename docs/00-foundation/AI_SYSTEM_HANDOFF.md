@@ -141,6 +141,14 @@ Portas mínimas de produção:
 
 O projeto SIR está em `C:\PEN\PROJETOS APP\sir-app\Inteligencia-Relacionamento-Sistema` e deve ser alterado somente depois de fechar o fluxo da BRITUS.
 
+### Limite obrigatório entre os produtos
+
+SIR e BRITUS-Max são sistemas operacionalmente independentes. Cada um deve possuir seu próprio ciclo de compilação, CI, implantação, banco, usuários, pagamentos, e-mails, configuração e disponibilidade. Falha, bloqueio ou validação de um nunca pode impedir a execução ou a implantação do outro.
+
+O compartilhamento permitido é somente interno e explícito: cópia aprovada de um componente ou biblioteca comum versionada, com dependência declarada e versão fixada. Não são permitidas dependências ocultas entre repositórios, chamadas obrigatórias entre ambientes de produção nem reutilização de segredos.
+
+A notificação de CI analisada em 31/07/2026 pertence exclusivamente ao repositório `BRITUS-Max`. Sua causa foi a verificação global de formatação sobre 110 arquivos legados; não houve evidência de execução ou dependência do SIR. O workflow foi ajustado para verificar formatação apenas no delta, preservando rigor sobre mudanças novas sem reformatar o legado inteiro.
+
 Estruturas já identificadas para reutilização conceitual:
 
 - `artifacts/api-server/src/routes/webhook-mercadopago.ts`: verificação de assinatura que falha fechada e processamento idempotente de pagamento;

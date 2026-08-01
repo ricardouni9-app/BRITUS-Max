@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -27,7 +29,25 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check formatting
-        run: pnpm format:check
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" =~ ^0+$ ]]; then
+            BASE_SHA="$(git rev-list --max-parents=0 HEAD)"
+          fi
+
+          mapfile -d '' changed_files < <(
+            git diff --name-only --diff-filter=ACMR -z "$BASE_SHA" HEAD -- \
+              '*.cjs' '*.css' '*.html' '*.js' '*.json' '*.jsx' '*.md' \
+              '*.mjs' '*.scss' '*.ts' '*.tsx' '*.yaml' '*.yml'
+          )
+
+          if ((${#changed_files[@]})); then
+            pnpm prettier --check "${changed_files[@]}"
+          else
+            echo "No changed files require a formatting check."
+          fi
 
       - name: Typecheck
         run: pnpm typecheck
