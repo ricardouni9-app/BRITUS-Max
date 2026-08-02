@@ -22,7 +22,7 @@ Este documento permite que outra IA continue o trabalho sem refazer reconhecimen
 - Verificação de produção em 31/07/2026: `/`, `/health` e `/public/platform-contact` retornaram 200; rota `__dev` retornou 404.
 - A apresentação promocional chega ao formulário final, não entra em looping e sincroniza troca de cena com o fim da narração.
 
-Isso representa **GO técnico para demonstração e comercialização assistida**. Ainda não representa GO para aquisição, pagamento, ativação e renovação totalmente autônomos; as lacunas estão na seção 11.
+O fluxo de teste é automático no código. O GO financeiro em produção depende da configuração segura das credenciais do Mercado Pago e de um pagamento real de homologação; as lacunas remanescentes estão na seção 11.
 
 ## 3. Estrutura do monorepo
 
@@ -45,9 +45,9 @@ Quando o áudio está ativo, a cena avança no evento de conclusão da fala, evi
 
 ### 4.2 Interesse em teste
 
-`POST /public/trial-interest` registra um interessado em `commercial_leads`. Há consentimento explícito, campo-isca contra robôs e limite de cinco requisições por minuto por IP.
+`POST /public/trial` recebe somente nome, e-mail e senha. Em uma única operação cria usuário, organização provisória, credencial Argon2id, vínculo de proprietário, assinatura, módulos integrais e sessão autenticada. O término é fixado exatamente 48 horas após o início. Não solicita telefone, autorização de contato nem atendimento humano.
 
-Estado importante: esse cadastro registra o interesse, mas ainda **não cria automaticamente organização, usuário, credencial, assinatura de teste e sessão**. Portanto, a liberação integral e automática do teste solicitada pelo Product Owner permanece pendente.
+O servidor consulta a assinatura em cada acesso operacional. Depois das 48 horas, o uso é bloqueado e a interface apresenta plano, módulos e checkout. O usuário também pode escolher “Contratar agora” antes do encerramento.
 
 ### 4.3 Contato público
 
@@ -173,31 +173,25 @@ Não copiar cegamente. Portar regras para as camadas e contratos da BRITUS, mant
 
 Prioridade crítica:
 
-1. Transformar o interesse em teste em provisionamento transacional: criar organização, usuário, credencial inicial segura, assinatura `trial`, direitos integrais temporários e sessão/link de primeiro acesso.
-2. Definir duração do teste, política de duplicidade, aceite jurídico, proteção contra abuso e recuperação de acesso.
-3. Criar página de cadastro completo para contratação e conversão do mesmo tenant, sem duplicar dados.
-4. Integrar provedor de pagamento real e validar assinatura de webhook, idempotência, estados pendente/pago/falhou/estornado e reconciliação.
-5. Integrar Brevo para boas-vindas, acesso, aviso dois dias antes do vencimento, cobrança, renovação e encerramento.
-6. Implementar rotina agendada idempotente para expiração, aviso e suspensão/reabertura de direitos.
-7. Implementar painel do Criador para contatos públicos, clientes, testes, assinaturas e recuperação emergencial auditada.
-8. Definir planos, preço, duração de teste, textos legais, domínio, remetente e WhatsApp oficiais.
+1. Configurar `MP_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` e `PUBLIC_BASE_URL` no Render e executar pagamento real de homologação.
+2. Integrar Brevo para boas-vindas, aviso de encerramento, cobrança, renovação e encerramento.
+3. Implementar rotina agendada idempotente para avisos; o bloqueio por expiração já ocorre em tempo de requisição.
+4. Implementar painel do Criador para clientes, testes, assinaturas e recuperação emergencial auditada.
+5. Confirmar preços, textos legais, domínio e remetente oficiais.
 
 Sem esses itens, não afirmar que o ciclo comercial é autônomo.
 
 ## 12. Sequência recomendada de implementação
 
-1. Fechar contratos e estados do ciclo `lead -> trial -> active -> past_due -> suspended -> cancelled`.
-2. Criar serviço transacional de provisionamento de teste e seus testes de concorrência/idempotência.
-3. Criar primeiro acesso e recuperação segura.
-4. Criar cadastro completo e conversão de trial.
-5. Conectar pagamento e webhooks.
-6. Conectar Brevo e agendamentos de ciclo de vida.
-7. Criar painel e acesso emergencial do Criador.
-8. Executar suíte integral PostgreSQL, smoke de produção e ensaio ponta a ponta com pagamento de teste.
-9. Só então portar o mesmo fluxo automático para o SIR.
+1. Aplicar a migração `0007_organization_profile` e publicar o delta.
+2. Configurar Mercado Pago no Render e executar o ensaio completo de pagamento/webhook/ativação.
+3. Conectar Brevo e agendamentos de ciclo de vida.
+4. Criar painel e acesso emergencial do Criador.
+5. Executar suíte integral PostgreSQL e smoke de produção.
+6. Só então portar o mesmo fluxo automático para o SIR.
 
 ## 13. Critério final de aceite comercial
 
 O GO para SaaS autônomo exige prova reproduzível de que um visitante consegue, sem atividade humana: assistir à apresentação, cadastrar-se, receber acesso temporário integral, obter orientação pelos contatos atuais do Criador, contratar, pagar, ter o acesso ativado, receber aviso dois dias antes do fim, renovar ou ser encerrado corretamente. Também exige que o Criador consiga recuperar rapidamente um cliente sem quebrar isolamento, segurança ou auditoria.
 
-Até essa prova existir, a classificação correta é: **comercialização assistida disponível; automação integral em construção**.
+Até a homologação financeira com credenciais reais existir, a classificação correta é: **teste automático implementado; pagamento automático implementado e aguardando configuração/homologação externa**.

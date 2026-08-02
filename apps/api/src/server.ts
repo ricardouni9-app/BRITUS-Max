@@ -20,6 +20,14 @@ export async function start(): Promise<void> {
       secureCookie: config.COOKIE_SECURE,
       sessionTtlSeconds: config.SESSION_TTL_SECONDS,
       logger: { level: config.LOG_LEVEL },
+      mercadoPago:
+        config.MP_ACCESS_TOKEN && config.MERCADOPAGO_WEBHOOK_SECRET && config.PUBLIC_BASE_URL
+          ? {
+              accessToken: config.MP_ACCESS_TOKEN,
+              webhookSecret: config.MERCADOPAGO_WEBHOOK_SECRET,
+              publicBaseUrl: config.PUBLIC_BASE_URL,
+            }
+          : undefined,
       demoOperator:
         config.BRITUS_DB === "memory" && config.DEMO_OPERATOR_EMAIL && config.DEMO_OPERATOR_PASSWORD
           ? { email: config.DEMO_OPERATOR_EMAIL, password: config.DEMO_OPERATOR_PASSWORD }
@@ -27,7 +35,11 @@ export async function start(): Promise<void> {
     });
     app = commercial.app;
     app.log.info({ backend: config.BRITUS_DB }, "MODO COMERCIAL — UI em / (rotas legítimas)");
-    if (commercial.demo) app.log.info({ email: commercial.demo.email, organizationId: commercial.demo.organizationId }, "operador de demonstração (memory) provisionado");
+    if (commercial.demo)
+      app.log.info(
+        { email: commercial.demo.email, organizationId: commercial.demo.organizationId },
+        "operador de demonstração (memory) provisionado",
+      );
   } else if (mode === "pilot") {
     app = buildApp({ logger: { level: config.LOG_LEVEL }, enableTestRoutes: true });
     app.log.info("MODO PILOTO — UI em / (memória, sem banco, inclui __dev)");

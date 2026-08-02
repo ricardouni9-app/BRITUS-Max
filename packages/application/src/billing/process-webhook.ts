@@ -35,7 +35,7 @@ export function makeProcessWebhook(deps: ProcessWebhookDeps) {
       raw: string;
       headers: Record<string, string | undefined>;
     }): Promise<Result<ProcessWebhookResult, ApplicationError>> {
-      const parsed = deps.gateway.verifyAndParse(input.raw, input.headers);
+      const parsed = await deps.gateway.verifyAndParse(input.raw, input.headers);
       if (!parsed.ok) {
         return err(parsed.error);
       }
@@ -67,7 +67,9 @@ export function makeProcessWebhook(deps: ProcessWebhookDeps) {
             await deps.subscriptions.save({
               ...sub,
               status: "active",
-              currentPeriodEndsAt: new Date(now.getTime() + PAID_PERIOD_DAYS * 24 * 3600 * 1000),
+              currentPeriodEndsAt: new Date(
+                now.getTime() + (p.periodDays ?? PAID_PERIOD_DAYS) * 24 * 3600 * 1000,
+              ),
               updatedAt: now,
             });
           }

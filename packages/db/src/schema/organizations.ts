@@ -10,10 +10,16 @@ export const organizations = pgTable("organizations", {
     .primaryKey()
     .$defaultFn(() => uuidv7()),
   name: text("name").notNull(),
-  status: text("status")
-    .notNull()
-    .default("active")
-    .$type<"active" | "inactive">(),
+  legalName: text("legal_name"),
+  taxId: text("tax_id"),
+  email: text("email"),
+  phone: text("phone"),
+  addressLine: text("address_line"),
+  city: text("city"),
+  state: text("state"),
+  postalCode: text("postal_code"),
+  profileCompletedAt: timestamp("profile_completed_at", { withTimezone: true }),
+  status: text("status").notNull().default("active").$type<"active" | "inactive">(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

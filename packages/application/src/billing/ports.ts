@@ -67,6 +67,7 @@ export interface NormalizedBillingEvent {
     readonly currency: Currency;
     readonly status: PaymentStatus;
     readonly organizationId: string;
+    readonly periodDays?: number;
   };
 }
 
@@ -77,5 +78,7 @@ export interface BillingProviderGateway {
   verifyAndParse(
     raw: string,
     headers: Record<string, string | undefined>,
-  ): Result<NormalizedBillingEvent, ApplicationError>;
+  ):
+    | Result<NormalizedBillingEvent, ApplicationError>
+    | Promise<Result<NormalizedBillingEvent, ApplicationError>>;
 }

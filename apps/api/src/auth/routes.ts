@@ -19,6 +19,7 @@ export interface AuthRoutesDeps {
   readonly authorizedCreateClient: UseCase<AuthorizedInput, unknown>;
   readonly secureCookie: boolean;
   readonly sessionTtlSeconds: number;
+  readonly canUseOrganization?: (organizationId: string) => Promise<boolean>;
   // Somente DEV/TESTE: quando presentes, expõem `/__dev/seed-operator` (composição em
   // memória). Na composição REAL (Drizzle) ficam ausentes — o provisionamento é via bootstrap.
   readonly seedStores?: InMemoryAuthStores;
@@ -30,7 +31,11 @@ async function fail(reply: FastifyReply, error: ApplicationError): Promise<void>
   await reply.status(httpError.statusCode).send(httpError.body);
 }
 
-async function sendResult<T>(reply: FastifyReply, result: Result<T, ApplicationError>, okStatus: number): Promise<void> {
+async function sendResult<T>(
+  reply: FastifyReply,
+  result: Result<T, ApplicationError>,
+  okStatus: number,
+): Promise<void> {
   if (result.ok) {
     await reply.status(okStatus).send(result.value);
     return;
@@ -46,9 +51,23 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
   const hasher = deps.hasher;
   if (seedStores !== undefined && hasher !== undefined) {
     app.post("/__dev/seed-operator", async (request, reply) => {
-      const body = request.body as { email?: string; password?: string; organizationId?: string; role?: UserRole };
-      if (typeof body?.email !== "string" || typeof body?.password !== "string" || typeof body?.organizationId !== "string") {
-        await reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: "email, password e organizationId obrigatórios" } });
+      const body = request.body as {
+        email?: string;
+        password?: string;
+        organizationId?: string;
+        role?: UserRole;
+      };
+      if (
+        typeof body?.email !== "string" ||
+        typeof body?.password !== "string" ||
+        typeof body?.organizationId !== "string"
+      ) {
+        await reply.status(400).send({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "email, password e organizationId obrigatórios",
+          },
+        });
         return;
       }
       const user = seedStores.seedUser({ name: "Operador", email: normalizeEmail(body.email) });
@@ -58,7 +77,11 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
         secretHash: await hasher.hash(body.password),
         algorithm: hasher.algorithm,
       });
-      seedStores.seedMembership({ organizationId: body.organizationId, userId: user.id, role: body.role ?? "lawyer" });
+      seedStores.seedMembership({
+        organizationId: body.organizationId,
+        userId: user.id,
+        role: body.role ?? "lawyer",
+      });
       await reply.status(201).send({ userId: user.id });
     });
   }
@@ -66,7 +89,9 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
   app.post("/auth/login", async (request, reply) => {
     const body = request.body as { email?: string; password?: string };
     if (typeof body?.email !== "string" || typeof body?.password !== "string") {
-      await reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: "credenciais ausentes" } });
+      await reply
+        .status(400)
+        .send({ error: { code: "VALIDATION_ERROR", message: "credenciais ausentes" } });
       return;
     }
     const result = await deps.authenticator.login({ email: body.email, password: body.password });
@@ -90,15 +115,26 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
   app.post("/auth/active-organization", async (request, reply) => {
     const token = readSessionCookie(request);
     if (token === null) {
-      await reply.status(401).send({ error: { code: "UNAUTHENTICATED", message: "Sessão ausente" } });
+      await reply
+        .status(401)
+        .send({ error: { code: "UNAUTHENTICATED", message: "Sessão ausente" } });
       return;
     }
     const body = request.body as { organizationId?: string };
     if (typeof body?.organizationId !== "string") {
-      await reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: "organizationId obrigatório" } });
+      await reply
+        .status(400)
+        .send({ error: { code: "VALIDATION_ERROR", message: "organizationId obrigatório" } });
       return;
     }
-    await sendResult(reply, await deps.authenticator.selectActiveOrganization({ token, organizationId: body.organizationId }), 200);
+    await sendResult(
+      reply,
+      await deps.authenticator.selectActiveOrganization({
+        token,
+        organizationId: body.organizationId,
+      }),
+      200,
+    );
   });
 
   // Rota de workflow AUTENTICADA (produção-like): contexto derivado 100% no servidor a
@@ -107,7 +143,9 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
   app.post("/clients", async (request, reply) => {
     const token = readSessionCookie(request);
     if (token === null) {
-      await reply.status(401).send({ error: { code: "UNAUTHENTICATED", message: "Sessão ausente" } });
+      await reply
+        .status(401)
+        .send({ error: { code: "UNAUTHENTICATED", message: "Sessão ausente" } });
       return;
     }
     const csrfHeader = request.headers["x-csrf-token"];
@@ -121,7 +159,26 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
       await fail(reply, context.error);
       return;
     }
-    const result = await deps.authorizedCreateClient.execute({ context: context.value, input: request.body });
+    const organizationId = context.value.organizationId;
+    if (!organizationId) {
+      await reply
+        .status(400)
+        .send({ error: { code: "VALIDATION_ERROR", message: "Organização ativa ausente" } });
+      return;
+    }
+    if (deps.canUseOrganization && !(await deps.canUseOrganization(organizationId))) {
+      await reply.status(402).send({
+        error: {
+          code: "TRIAL_ENDED",
+          message: "O teste de 48 horas terminou. Escolha o plano e os módulos para continuar.",
+        },
+      });
+      return;
+    }
+    const result = await deps.authorizedCreateClient.execute({
+      context: context.value,
+      input: request.body,
+    });
     if (result.ok) {
       await reply.status(201).send(result.value);
       return;

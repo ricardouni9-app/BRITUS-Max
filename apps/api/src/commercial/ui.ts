@@ -41,13 +41,12 @@ h2.big{font-size:18px;margin:0 0 2px}
 
 <div id="promoView" class="promo">
   <section class="stage" aria-live="polite"><div class="scene"><h1 id="sceneTitle"></h1><div id="sceneCaption" class="caption"></div></div></section>
-  <div class="pcontrols"><button id="voiceBtn" class="ghost">Ouvir apresentação</button><button id="pauseBtn" class="ghost">Pausar</button><div class="progress"><i id="progressFill"></i></div></div>
+  <div class="pcontrols"><button id="watchBtn">Assistir</button><button id="skipBtn" class="ghost">Pular</button><button id="voiceBtn" class="ghost hidden">Ativar narração</button><button id="pauseBtn" class="ghost hidden">Pausar</button><div id="progress" class="progress hidden"><i id="progressFill"></i></div></div>
   <div class="trial pan">
-    <h2 class="big">Faça um teste preenchendo os dados abaixo</h2><p class="h">O acesso será preparado para você conhecer a BRITUS. A advocacia é nossa prioridade inicial, e a estrutura atende diferentes áreas profissionais.</p>
-    <div class="trialgrid"><div><label>Nome</label><input id="tname" autocomplete="name"/></div><div><label>E-mail</label><input id="temail" type="email" autocomplete="email"/></div><div><label>Telefone (opcional)</label><input id="tphone" autocomplete="tel"/></div><div><label>Área de atuação</label><input id="tsegment" placeholder="Ex.: advocacia, consultoria, serviços"/></div></div>
+    <h2 class="big">Comece seu teste integral de 48 horas</h2><p class="h">Informe somente o essencial. O acesso é criado e liberado automaticamente, sem contato ou intervenção humana.</p>
+    <div class="trialgrid"><div><label>Nome</label><input id="tname" autocomplete="name"/></div><div><label>E-mail</label><input id="temail" type="email" autocomplete="email"/></div><div><label>Crie uma senha</label><input id="tpassword" type="password" minlength="10" autocomplete="new-password"/></div></div>
     <input id="twebsite" class="hp" tabindex="-1" autocomplete="off"/>
-    <label class="check"><input id="tconsent" type="checkbox"/> Autorizo o contato da BRITUS sobre o teste e futuras informações relacionadas ao produto. Posso solicitar a interrupção a qualquer momento.</label>
-    <button id="trialBtn">Solicitar teste</button><div id="tmsg" class="msg"></div>
+    <button id="trialBtn">Liberar meu teste por 48 horas</button><div id="tmsg" class="msg"></div>
   </div>
 </div>
 
@@ -60,6 +59,7 @@ h2.big{font-size:18px;margin:0 0 2px}
 </div>
 
 <div id="appView" class="wrap hidden">
+  <div id="accessPanel" class="pan" style="margin-bottom:16px"></div>
   <div class="grid">
     <div class="pan">
       <h3>Novo cliente</h3><p class="h">Cadastro do cliente na organização ativa.</p>
@@ -104,11 +104,10 @@ const SCENES=[
   ['Transforme demandas em trabalho estruturado.',['Casos, projetos e atividades seguem um fluxo compreensível.','A estrutura se adapta à realidade da sua área.']],
   ['Trabalhe com segurança.',['Cada organização possui seu próprio contexto de acesso.','Identidade, permissões e operações são validadas no servidor.']],
   ['Começamos pela advocacia.',['Ela é nossa prioridade comercial inicial.','A BRITUS, porém, foi construída para apoiar diferentes atividades profissionais.']],
-  ['Experimente com acompanhamento humano.',['Solicite um teste assistido e conheça a aplicação na sua realidade.','Se precisar de orientação, o WhatsApp oficial da BRITUS aparecerá ao final.','Se ainda não for o momento de contratar, poderemos manter contato com sua autorização.']]
+  ['Experimente por 48 horas.',['Faça o cadastro essencial e receba acesso integral imediatamente.','Ao final, escolha seu plano e seus módulos para continuar.','Todo o processo é automático e acontece dentro da BRITUS.']]
 ];
-let sceneIndex=0,playing=true,voiced=false,sceneStarted=Date.now();const SCENE_MS=9000;
+let sceneIndex=0,playing=false,voiced=false,sceneStarted=Date.now();const SCENE_MS=9000;
 function renderScene(){const s=SCENES[sceneIndex];$('sceneTitle').textContent=s[0];$('sceneCaption').innerHTML=s[1].map(x=>'<span>'+x+'</span>').join('');sceneStarted=Date.now();if(voiced)speakScene()}
-async function loadPlatformContact(){const r=await api('GET','/public/platform-contact');if(!r.ok||!r.data)return;const lines=[];if(r.data.whatsapp)lines.push('WhatsApp: '+r.data.whatsapp+'.');if(r.data.phone&&r.data.phone!==r.data.whatsapp)lines.push('Telefone: '+r.data.phone+'.');if(r.data.email)lines.push('E-mail: '+r.data.email+'.');if(r.data.website)lines.push('Site: '+r.data.website+'.');if(!lines.length)return;SCENES[SCENES.length-1][1].splice(1,1,...lines);const note=document.createElement('p');note.className='h';note.textContent=lines.join(' ');document.querySelector('.trial').appendChild(note);if(sceneIndex===SCENES.length-1)renderScene()}
 function finishPresentation(){playing=false;speechSynthesis.cancel();$('progressFill').style.width='100%';$('pauseBtn').textContent='Rever apresentação';$('trialBtn').focus({preventScroll:true});document.querySelector('.trial').scrollIntoView({behavior:'smooth',block:'start'})}
 function advanceScene(){if(sceneIndex>=SCENES.length-1){finishPresentation();return}sceneIndex+=1;renderScene()}
 function speakScene(){speechSynthesis.cancel();const s=SCENES[sceneIndex];const spoken=[s[0],...s[1]].join(' ').replaceAll('BRITUS','Brítus');const u=new SpeechSynthesisUtterance(spoken);u.lang='pt-BR';u.rate=.94;u.pitch=.96;u.onend=()=>{if(voiced&&playing)advanceScene()};speechSynthesis.speak(u)}
@@ -136,7 +135,35 @@ async function boot(){
   $('orgtag').textContent='Organização: '+(org?org.slice(0,8)+'…':'—');
   $('sessinfo').innerHTML='<div class="it">Operador autenticado<br><small>Org ativa: '+(org||'nenhuma')+'</small></div>';
   show('app');
+  await renderAccess();
 }
+let accessTimer=null;
+function remainingText(end){const ms=Math.max(0,new Date(end).getTime()-Date.now());const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);const s=Math.floor((ms%60000)/1000);return h+'h '+m+'min '+s+'s'}
+async function renderAccess(){
+  if(accessTimer)clearInterval(accessTimer);
+  const r=await api('GET','/commercial/access');if(!r.ok)return;
+  const panel=$('accessPanel');
+  if(r.data.allowed&&r.data.status==='trialing'){
+    panel.innerHTML='<h3>Teste integral ativo</h3><p class="h">Seu período termina em <b id="trialClock"></b>. Ao final, escolha plano e módulos para continuar.</p><button id="purchaseNow" class="ghost">Contratar agora</button>';
+    $('purchaseNow').onclick=showPurchaseOptions;
+    const update=()=>{const clock=$('trialClock');if(!clock)return;clock.textContent=remainingText(r.data.trialEndsAt);if(new Date(r.data.trialEndsAt).getTime()<=Date.now())renderAccess()};update();accessTimer=setInterval(update,1000);return;
+  }
+  if(r.data.allowed){panel.innerHTML='<h3>Pagamento aprovado — complete sua organização</h3><p class="h">O acesso já está ativo. Conclua os dados da organização para finalizar a contratação.</p><div class="trialgrid"><input id="orgLegalName" placeholder="Razão social / nome completo"/><input id="orgTaxId" placeholder="CNPJ / CPF"/><input id="orgEmail" type="email" placeholder="E-mail da organização"/><input id="orgPhone" placeholder="Telefone"/><input id="orgAddress" placeholder="Endereço"/><input id="orgCity" placeholder="Cidade"/><input id="orgState" placeholder="UF"/><input id="orgPostal" placeholder="CEP"/></div><button id="orgCompleteBtn">Finalizar cadastro</button><div id="orgCompleteMsg" class="msg"></div>';$('orgCompleteBtn').onclick=completeOrganization;return}
+  await showPurchaseOptions();
+}
+async function showPurchaseOptions(){
+  const panel=$('accessPanel');const catalog=await api('GET','/billing/catalog');const modules=(catalog.data&&catalog.data.modules)||[];
+  panel.innerHTML='<h3>Seu teste terminou</h3><p class="h">Escolha o plano e os módulos. O pagamento e a ativação acontecem automaticamente.</p><label>Plano</label><select id="purchasePlan"><option value="monthly">Mensal</option><option value="annual">Anual</option></select><div id="moduleChoices"></div><button id="purchaseBtn">Continuar para pagamento</button><div id="purchaseMsg" class="msg"></div>';
+  $('moduleChoices').innerHTML=modules.map((module,index)=>'<label class="check"><input type="checkbox" class="purchaseModule" value="'+module.code+'" '+(index===0?'checked':'')+'/> '+module.name+' — '+(module.priceCents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+'</label>').join('');
+  $('purchaseBtn').onclick=startPurchase;
+}
+async function startPurchase(){
+  const moduleCodes=[...document.querySelectorAll('.purchaseModule:checked')].map(input=>input.value);const plan=$('purchasePlan').value;$('purchaseMsg').textContent='Preparando pagamento…';
+  const selected=await api('POST','/billing/subscription',{moduleCodes});if(!selected.ok){$('purchaseMsg').className='msg err';$('purchaseMsg').textContent=errMsg(selected.data);return}
+  const checkout=await api('POST','/billing/checkout',{plan,moduleCodes});if(!checkout.ok){$('purchaseMsg').className='msg err';$('purchaseMsg').textContent=errMsg(checkout.data);return}
+  location.href=checkout.data.checkoutUrl;
+}
+async function completeOrganization(){const body={legalName:$('orgLegalName').value,taxId:$('orgTaxId').value,email:$('orgEmail').value,phone:$('orgPhone').value,addressLine:$('orgAddress').value,city:$('orgCity').value,state:$('orgState').value,postalCode:$('orgPostal').value};const r=await api('POST','/commercial/organization-profile',body);$('orgCompleteMsg').className=r.ok?'msg ok':'msg err';$('orgCompleteMsg').textContent=r.ok?'Cadastro concluído. Sistema liberado.':errMsg(r.data)}
 async function doLogin(){
   $('lmsg').className='msg';$('lmsg').textContent='Entrando…';
   const r=await api('POST','/auth/login',{email:$('lemail').value.trim(),password:$('lpass').value});
@@ -145,9 +172,10 @@ async function doLogin(){
 }
 async function logout(){await api('POST','/auth/logout');csrf=null;location.reload()}
 async function trial(){
-  $('tmsg').className='msg';$('tmsg').textContent='Enviando…';
-  const r=await api('POST','/public/trial-interest',{name:$('tname').value,email:$('temail').value,phone:$('tphone').value,segment:$('tsegment').value,website:$('twebsite').value,consent:$('tconsent').checked});
-  $('tmsg').className=r.ok?'msg ok':'msg err';$('tmsg').textContent=r.ok?r.data.message:errMsg(r.data);
+  $('tmsg').className='msg';$('tmsg').textContent='Criando e liberando seu acesso…';
+  const r=await api('POST','/public/trial',{name:$('tname').value,email:$('temail').value,password:$('tpassword').value,website:$('twebsite').value});
+  if(!r.ok){$('tmsg').className='msg err';$('tmsg').textContent=errMsg(r.data);return}
+  csrf=r.data.csrfToken;sessionStorage.setItem('britusTrialEndsAt',r.data.trialEndsAt);$('tmsg').className='msg ok';$('tmsg').textContent=r.data.message;await boot();
 }
 function addItem(listId,html){const l=$(listId);l.innerHTML='<div class="it">'+html+'</div>'+l.innerHTML}
 async function mkClient(){
@@ -173,11 +201,13 @@ async function mkCase(){
 }
 $('loginBtn').onclick=doLogin;$('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 $('openLogin').onclick=()=>show('login');$('trialBtn').onclick=trial;
+$('watchBtn').onclick=()=>{playing=true;$('watchBtn').classList.add('hidden');$('skipBtn').classList.add('hidden');$('voiceBtn').classList.remove('hidden');$('pauseBtn').classList.remove('hidden');$('progress').classList.remove('hidden');sceneStarted=Date.now()};
+$('skipBtn').onclick=finishPresentation;
 $('voiceBtn').onclick=()=>{voiced=!voiced;$('voiceBtn').textContent=voiced?'Desativar narração':'Ouvir apresentação';if(voiced){playing=true;speakScene()}else{speechSynthesis.cancel();sceneStarted=Date.now()}};
 $('pauseBtn').onclick=()=>{if(!playing&&sceneIndex===SCENES.length-1){sceneIndex=0;playing=true;renderScene();$('pauseBtn').textContent='Pausar';scrollTo({top:0,behavior:'smooth'});return}playing=!playing;$('pauseBtn').textContent=playing?'Pausar':'Continuar';if(!playing)speechSynthesis.pause();else{speechSynthesis.resume();sceneStarted=Date.now()}};
 $('logout').onclick=logout;$('logout2').onclick=logout;
 $('cpbtn').onclick=mkClient;$('atbtn').onclick=mkAtend;$('csbtn').onclick=mkCase;
-renderScene();loadPlatformContact();boot();
+renderScene();boot();
 </script></body></html>`;
 
 export function registerCommercialUi(app: FastifyInstance): void {

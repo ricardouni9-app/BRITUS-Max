@@ -6,9 +6,7 @@ const configSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   HOST: z.string().min(1).default("127.0.0.1"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-  LOG_LEVEL: z
-    .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
-    .default("info"),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   // Modo de execução da aplicação:
   //  - "pilot"      : composição em memória + UI de piloto (demo local, sem banco).
   //  - "commercial" : produto real (rotas legítimas + UI comercial). Backend via BRITUS_DB.
@@ -22,11 +20,18 @@ const configSchema = z.object({
     .enum(["0", "1", "true", "false"])
     .default("false")
     .transform((v) => v === "1" || v === "true"),
-  SESSION_TTL_SECONDS: z.coerce.number().int().min(60).default(60 * 60 * 8),
+  SESSION_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .default(60 * 60 * 8),
   // Operador de DEMONSTRAÇÃO (apenas modo comercial + backend memory). Provisionado no boot,
   // NUNCA via rota HTTP. Ausente => sem operador (login falhará até bootstrap).
   DEMO_OPERATOR_EMAIL: z.string().email().optional(),
   DEMO_OPERATOR_PASSWORD: z.string().min(8).optional(),
+  MP_ACCESS_TOKEN: z.string().min(1).optional(),
+  MERCADOPAGO_WEBHOOK_SECRET: z.string().min(1).optional(),
+  PUBLIC_BASE_URL: z.string().url().optional(),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
@@ -44,6 +49,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     SESSION_TTL_SECONDS: env.SESSION_TTL_SECONDS,
     DEMO_OPERATOR_EMAIL: env.DEMO_OPERATOR_EMAIL,
     DEMO_OPERATOR_PASSWORD: env.DEMO_OPERATOR_PASSWORD,
+    MP_ACCESS_TOKEN: env.MP_ACCESS_TOKEN,
+    MERCADOPAGO_WEBHOOK_SECRET: env.MERCADOPAGO_WEBHOOK_SECRET,
+    PUBLIC_BASE_URL: env.PUBLIC_BASE_URL,
   });
 
   // Falha CLARA quando falta configuração essencial ao modo comercial com Postgres.
