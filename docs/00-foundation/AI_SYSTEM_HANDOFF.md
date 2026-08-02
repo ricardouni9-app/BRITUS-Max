@@ -4,6 +4,11 @@ Atualizado em: 31 de julho de 2026
 Repositório: `ricardouni9-app/BRITUS-Max`  
 Produção: `https://britus-max.onrender.com`
 
+Apresentação institucional: inicia muda e oferece narração opcional com a voz aprovada
+Elena Vinter. O arquivo `apps/api/assets/britus-intro-elena.mp3` é servido pelo próprio
+BRITUS; cenas e progresso seguem o tempo real do áudio, sem `speechSynthesis`, e o término
+leva ao cadastro essencial de teste sem looping.
+
 ## 1. Finalidade e regra de continuidade
 
 A BRITUS é uma plataforma SaaS de operação e relacionamento, concebida para vários setores. A advocacia é o primeiro foco comercial por necessidade de faturamento, mas regras, nomes e novos módulos não devem tornar o núcleo exclusivamente jurídico.

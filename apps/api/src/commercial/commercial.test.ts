@@ -36,11 +36,24 @@ describe("modo comercial (memory) — segurança e fluxo", () => {
     expect(page.body).toContain(">Assistir<");
     expect(page.body).toContain(">Pular<");
     expect(page.body).toContain("teste integral de 48 horas");
+    expect(page.body).toContain("/assets/britus-intro-elena.mp3");
+    expect(page.body).toContain("narration.addEventListener('timeupdate'");
+    expect(page.body).not.toContain("speechSynthesis");
     expect(page.body).not.toContain("Telefone (opcional)");
     expect(
       (await c.app.inject({ method: "POST", url: "/public/trial-interest", payload: {} }))
         .statusCode,
     ).toBe(404);
+  });
+
+  it("serve a narração institucional aprovada sem expor caminho local", async () => {
+    const audio = await c.app.inject({
+      method: "GET",
+      url: "/assets/britus-intro-elena.mp3",
+    });
+    expect(audio.statusCode).toBe(200);
+    expect(audio.headers["content-type"]).toContain("audio/mpeg");
+    expect(audio.rawPayload.byteLength).toBeGreaterThan(100_000);
   });
 
   it("rejeita não autenticado nas rotas comerciais (401)", async () => {
