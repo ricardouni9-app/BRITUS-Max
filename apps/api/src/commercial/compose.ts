@@ -166,8 +166,8 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
     createHash("sha256").update(token).digest("base64url");
   const requestPasswordReset = async (emailInput: string): Promise<void> => {
     const email = normalizeEmail(emailInput);
-    const user = await authStores.identities.findUserByEmail(email);
-    const creator = user === null ? await authStores.identities.findCreatorByEmail(email) : null;
+    const creator = await authStores.identities.findCreatorByEmail(email);
+    const user = creator === null ? await authStores.identities.findUserByEmail(email) : null;
     const subject =
       user !== null
         ? { type: "user" as const, id: user.id }

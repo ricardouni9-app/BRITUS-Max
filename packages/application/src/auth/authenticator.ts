@@ -77,9 +77,8 @@ export function makeAuthenticator(deps: AuthenticatorDeps): Authenticator {
     authenticate,
 
     async login({ email, password }) {
-      const user = await deps.identities.findUserByEmail(normalizeEmail(email));
-      const creator =
-        user === null ? await deps.identities.findCreatorByEmail(normalizeEmail(email)) : null;
+      const creator = await deps.identities.findCreatorByEmail(normalizeEmail(email));
+      const user = creator === null ? await deps.identities.findUserByEmail(normalizeEmail(email)) : null;
       const subject =
         user !== null
           ? { type: "user" as const, id: user.id }

@@ -159,8 +159,8 @@ describe("makeAuthenticator", () => {
     const clock = (): Date => new Date();
     const auth = makeAuthenticator({
       identities: {
-        async findUserByEmail() {
-          return null;
+        async findUserByEmail(email) {
+          return email === "criador@britus.test" ? { id: USER_ID } : null;
         },
         async findCreatorByEmail(email) {
           return email === "criador@britus.test" ? { id: creatorId } : null;
