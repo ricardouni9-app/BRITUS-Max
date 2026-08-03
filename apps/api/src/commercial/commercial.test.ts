@@ -36,8 +36,9 @@ describe("modo comercial (memory) — segurança e fluxo", () => {
     expect(page.body).toContain(">Assistir<");
     expect(page.body).toContain(">Pular<");
     expect(page.body).toContain("teste integral de 48 horas");
-    expect(page.body).toContain("/assets/britus-intro-elena.mp3");
-    expect(page.body).toContain("narration.addEventListener('timeupdate'");
+    expect(page.body).toContain("/assets/narration/britus-intro-");
+    expect(page.body).toContain("narration.addEventListener('ended'");
+    expect(page.body).toContain("advanceScene()");
     expect(page.body).not.toContain("speechSynthesis");
     expect(page.body).not.toContain("Telefone (opcional)");
     expect(
@@ -46,14 +47,16 @@ describe("modo comercial (memory) — segurança e fluxo", () => {
     ).toBe(404);
   });
 
-  it("serve a narração institucional aprovada sem expor caminho local", async () => {
-    const audio = await c.app.inject({
-      method: "GET",
-      url: "/assets/britus-intro-elena.mp3",
-    });
-    expect(audio.statusCode).toBe(200);
-    expect(audio.headers["content-type"]).toContain("audio/mpeg");
-    expect(audio.rawPayload.byteLength).toBeGreaterThan(100_000);
+  it("serve as sete narrações institucionais sem expor caminho local", async () => {
+    for (let index = 1; index <= 7; index += 1) {
+      const audio = await c.app.inject({
+        method: "GET",
+        url: `/assets/narration/britus-intro-${String(index).padStart(2, "0")}.mp3`,
+      });
+      expect(audio.statusCode).toBe(200);
+      expect(audio.headers["content-type"]).toContain("audio/mpeg");
+      expect(audio.rawPayload.byteLength).toBeGreaterThan(100_000);
+    }
   });
 
   it("rejeita não autenticado nas rotas comerciais (401)", async () => {

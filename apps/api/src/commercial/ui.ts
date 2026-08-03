@@ -30,8 +30,8 @@ button:hover{background:var(--accd)}button.ghost{background:#eef3fb;color:var(--
 .msg{margin-top:12px;font-size:13px;min-height:18px}.msg.ok{color:var(--ok)}.msg.err{color:var(--err)}
 .center{max-width:400px;margin:8vh auto}.hidden{display:none}
 h2.big{font-size:18px;margin:0 0 2px}
-.promo{max-width:1040px;margin:24px auto;padding:0 18px}.stage{min-height:430px;border-radius:22px;padding:42px;background:linear-gradient(135deg,#071a38,#1e5fbf);color:#fff;display:grid;place-items:center;text-align:center;position:relative;overflow:hidden}
-.stage:before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:#fff2;filter:blur(30px);right:-160px;top:-190px}.scene{position:relative;max-width:760px}.scene h1{font-size:clamp(30px,5vw,54px);line-height:1.08;margin:0 0 20px}.caption{font-size:clamp(17px,2vw,22px);line-height:1.55}.caption span{display:block}.pcontrols{display:flex;gap:10px;align-items:center;margin-top:14px}.pcontrols button{width:auto;margin:0}.progress{height:5px;background:#ffffff36;border-radius:9px;overflow:hidden;flex:1}.progress i{display:block;height:100%;background:#fff;width:0;transition:width .25s}.trial{margin:18px auto 0;max-width:720px}.trialgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;gap:9px;align-items:flex-start;color:var(--mut);font-size:12px}.check input{width:auto;margin-top:3px}.hp{position:absolute;left:-9999px}.topcta{width:auto;margin:0;padding:8px 13px}
+.promo{max-width:1040px;margin:24px auto;padding:0 18px}.stage{min-height:430px;border-radius:22px;padding:42px;background:linear-gradient(135deg,#071a38 0%,#123f7b 58%,#1e5fbf 100%);color:#fff;display:grid;place-items:center;text-align:center;position:relative;overflow:hidden;box-shadow:0 24px 60px rgba(7,26,56,.18)}
+.stage:before{content:"";position:absolute;inset:-20%;background:repeating-linear-gradient(118deg,transparent 0 86px,rgba(244,214,211,.16) 87px 89px,transparent 90px 154px,rgba(236,72,153,.12) 155px 157px);transform:rotate(-2deg);pointer-events:none}.stage:after{content:"";position:absolute;width:360px;height:360px;border:1px solid rgba(244,214,211,.35);border-radius:50%;right:-170px;top:-185px;box-shadow:0 0 0 26px rgba(236,72,153,.035);pointer-events:none}.scene{position:relative;z-index:1;max-width:780px;padding:26px 30px;border:1px solid rgba(244,214,211,.2);border-radius:18px;background:rgba(7,26,56,.14);backdrop-filter:blur(2px)}.scene h1{font-size:clamp(30px,5vw,54px);line-height:1.08;margin:0 0 20px;color:#fff8ee}.caption{font-size:clamp(17px,2vw,22px);line-height:1.55;color:#f8efe6}.caption span{display:block}.pcontrols{display:flex;gap:10px;align-items:center;margin-top:14px}.pcontrols button{width:auto;margin:0}.progress{height:5px;background:#ead9ce;border-radius:9px;overflow:hidden;flex:1}.progress i{display:block;height:100%;background:linear-gradient(90deg,#f4d6d3,#ec4899);width:0;transition:width .25s}.trial{margin:18px auto 0;max-width:720px;border-top:3px solid #ead9ce}.trialgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;gap:9px;align-items:flex-start;color:var(--mut);font-size:12px}.check input{width:auto;margin-top:3px}.hp{position:absolute;left:-9999px}.topcta{width:auto;margin:0;padding:8px 13px}
 @media(max-width:700px){.grid,.trialgrid{grid-template-columns:1fr}.stage{min-height:390px;padding:28px 18px}.promo{padding:0 10px}}
 </style></head><body>
 <div class="top"><span class="brand">BRITUS<b> · Operações organizadas</b></span><span class="sp"></span>
@@ -41,7 +41,7 @@ h2.big{font-size:18px;margin:0 0 2px}
 </div>
 
 <div id="promoView" class="promo">
-  <audio id="narration" preload="metadata" src="/assets/britus-intro-elena.mp3"></audio>
+  <audio id="narration" preload="auto"></audio>
   <section class="stage" aria-live="polite"><div class="scene"><h1 id="sceneTitle"></h1><div id="sceneCaption" class="caption"></div></div></section>
   <div class="pcontrols"><button id="watchBtn">Assistir</button><button id="skipBtn" class="ghost">Pular</button><button id="voiceBtn" class="ghost hidden">Ativar narração</button><button id="pauseBtn" class="ghost hidden">Pausar</button><div id="progress" class="progress hidden"><i id="progressFill"></i></div></div>
   <div class="trial pan">
@@ -108,13 +108,16 @@ const SCENES=[
   ['Começamos pela advocacia.',['Ela é nossa prioridade comercial inicial.','A BRITUS, porém, foi construída para apoiar diferentes atividades profissionais.']],
   ['Experimente por 48 horas.',['Faça o cadastro essencial e receba acesso integral imediatamente.','Ao final, escolha seu plano e seus módulos para continuar.','Todo o processo é automático e acontece dentro da BRITUS.']]
 ];
-let sceneIndex=0,playing=false,voiced=false,sceneStarted=Date.now();const SCENE_MS=9000;const CUES=[0,10.4,20.7,31.1,41.5,51.9,62.3];const narration=$('narration');
-function renderScene(){const s=SCENES[sceneIndex];$('sceneTitle').textContent=s[0];$('sceneCaption').innerHTML=s[1].map(x=>'<span>'+x+'</span>').join('');sceneStarted=Date.now()}
+const AUDIO_SOURCES=SCENES.map((_,i)=>'/assets/narration/britus-intro-'+String(i+1).padStart(2,'0')+'.mp3');
+let sceneIndex=0,playing=false,voiced=false,sceneStarted=Date.now();const SCENE_MS=9000;const narration=$('narration');
+function loadNarration(){const source=AUDIO_SOURCES[sceneIndex];if(narration.getAttribute('src')!==source){narration.pause();narration.src=source;narration.load()}}
+function playNarration(){loadNarration();narration.currentTime=0;void narration.play()}
+function renderScene(){const s=SCENES[sceneIndex];$('sceneTitle').textContent=s[0];$('sceneCaption').innerHTML=s[1].map(x=>'<span>'+x+'</span>').join('');sceneStarted=Date.now();loadNarration()}
 function finishPresentation(){playing=false;narration.pause();$('progressFill').style.width='100%';$('pauseBtn').textContent='Rever apresentação';$('trialBtn').focus({preventScroll:true});document.querySelector('.trial').scrollIntoView({behavior:'smooth',block:'start'})}
-function advanceScene(){if(sceneIndex>=SCENES.length-1){finishPresentation();return}sceneIndex+=1;renderScene()}
+function advanceScene(){if(sceneIndex>=SCENES.length-1){finishPresentation();return}sceneIndex+=1;renderScene();if(voiced&&playing)playNarration()}
 setInterval(()=>{if(!playing||voiced)return;const p=Math.min(1,(Date.now()-sceneStarted)/SCENE_MS);$('progressFill').style.width=(((sceneIndex+p)/SCENES.length)*100)+'%';if(p>=1)advanceScene()},250);
-narration.addEventListener('timeupdate',()=>{if(!voiced||!playing)return;let next=0;for(let i=0;i<CUES.length;i++)if(narration.currentTime>=CUES[i])next=i;if(next!==sceneIndex){sceneIndex=next;renderScene()}if(narration.duration)$('progressFill').style.width=(narration.currentTime/narration.duration*100)+'%'});
-narration.addEventListener('ended',finishPresentation);
+narration.addEventListener('timeupdate',()=>{if(!voiced||!playing||!narration.duration)return;const within=Math.min(1,narration.currentTime/narration.duration);$('progressFill').style.width=(((sceneIndex+within)/SCENES.length)*100)+'%'});
+narration.addEventListener('ended',()=>{if(voiced&&playing)advanceScene()});
 async function api(method,url,body){
   const h={'content-type':'application/json'};
   if(method!=='GET'&&csrf)h['x-csrf-token']=csrf;
@@ -206,19 +209,22 @@ $('loginBtn').onclick=doLogin;$('lpass').addEventListener('keydown',e=>{if(e.key
 $('openLogin').onclick=()=>show('login');$('trialBtn').onclick=trial;
 $('watchBtn').onclick=()=>{playing=true;$('watchBtn').classList.add('hidden');$('skipBtn').classList.add('hidden');$('voiceBtn').classList.remove('hidden');$('pauseBtn').classList.remove('hidden');$('progress').classList.remove('hidden');sceneStarted=Date.now()};
 $('skipBtn').onclick=finishPresentation;
-$('voiceBtn').onclick=()=>{voiced=!voiced;$('voiceBtn').textContent=voiced?'Desativar narração':'Ativar narração';if(voiced){playing=true;narration.currentTime=CUES[sceneIndex];void narration.play()}else{narration.pause();sceneStarted=Date.now()}};
-$('pauseBtn').onclick=()=>{if(!playing&&sceneIndex===SCENES.length-1){sceneIndex=0;playing=true;renderScene();$('pauseBtn').textContent='Pausar';if(voiced){narration.currentTime=0;void narration.play()}scrollTo({top:0,behavior:'smooth'});return}playing=!playing;$('pauseBtn').textContent=playing?'Pausar':'Continuar';if(!playing)narration.pause();else{if(voiced)void narration.play();sceneStarted=Date.now()}};
+$('voiceBtn').onclick=()=>{voiced=!voiced;$('voiceBtn').textContent=voiced?'Desativar narração':'Ativar narração';if(voiced){playing=true;playNarration()}else{narration.pause();sceneStarted=Date.now()}};
+$('pauseBtn').onclick=()=>{if(!playing&&sceneIndex===SCENES.length-1){sceneIndex=0;playing=true;renderScene();$('pauseBtn').textContent='Pausar';if(voiced)playNarration();scrollTo({top:0,behavior:'smooth'});return}playing=!playing;$('pauseBtn').textContent=playing?'Pausar':'Continuar';if(!playing)narration.pause();else{if(voiced)void narration.play();sceneStarted=Date.now()}};
 $('logout').onclick=logout;$('logout2').onclick=logout;
 $('cpbtn').onclick=mkClient;$('atbtn').onclick=mkAtend;$('csbtn').onclick=mkCase;
 renderScene();boot();
 </script></body></html>`;
 
 export function registerCommercialUi(app: FastifyInstance): void {
-  app.get("/assets/britus-intro-elena.mp3", async (_request, reply) => {
-    await reply
-      .type("audio/mpeg")
-      .send(createReadStream(new URL("../../assets/britus-intro-elena.mp3", import.meta.url)));
-  });
+  for (let index = 1; index <= 7; index += 1) {
+    const filename = `britus-intro-${String(index).padStart(2, "0")}.mp3`;
+    app.get(`/assets/narration/${filename}`, async (_request, reply) => {
+      await reply
+        .type("audio/mpeg")
+        .send(createReadStream(new URL(`../../assets/narration/${filename}`, import.meta.url)));
+    });
+  }
   app.get("/", async (_request, reply) => {
     await reply.type("text/html; charset=utf-8").send(HTML);
   });

@@ -5,7 +5,7 @@ Repositório: `ricardouni9-app/BRITUS-Max`
 Produção: `https://britus-max.onrender.com`
 
 Apresentação institucional: inicia muda e oferece narração opcional com a voz aprovada
-Elena Vinter. O arquivo `apps/api/assets/britus-intro-elena.mp3` é servido pelo próprio
+Elena Vinter. Os sete arquivos em `apps/api/assets/narration/` são servidos pelo próprio
 BRITUS; cenas e progresso seguem o tempo real do áudio, sem `speechSynthesis`, e o término
 leva ao cadastro essencial de teste sem looping.
 
@@ -46,7 +46,7 @@ O desenho preserva separação entre HTTP, aplicação, domínio e persistência
 
 `GET /` entrega a página comercial. Ela contém apresentação em cenas, áudio opcional iniciado mudo e formulário com o título “Faça um teste preenchendo os dados abaixo”. Não existe limite estrutural fixo de cenas.
 
-Quando o áudio está ativo, a cena avança no evento de conclusão da fala, evitando corte da narração. Nas legendas, cada frase é exibida em nova linha. Para a fala sintetizada, “BRITUS” é enviado como “Brítus”, mantendo a marca visual inalterada.
+Quando o áudio está ativo, cada cena carrega um arquivo exclusivo e só avança no evento de conclusão da fala, evitando corte ou sobreposição. Nas legendas, cada frase é exibida em nova linha. Para a fala sintetizada, “BRITUS” é enviado como “Brítus”, mantendo a marca visual inalterada.
 
 ### 4.2 Interesse em teste
 
