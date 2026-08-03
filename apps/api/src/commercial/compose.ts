@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { uuidv7 } from "uuidv7";
+import { createHash, randomBytes } from "node:crypto";
 import {
   makeCreateClient,
   makeRegisterAtendimento,
@@ -53,6 +54,12 @@ export interface CommercialOptions {
   readonly sessionTtlSeconds: number;
   readonly logger?: boolean | { level: string };
   readonly mercadoPago?: { accessToken: string; webhookSecret: string; publicBaseUrl: string };
+  readonly passwordRecoveryEmail?: {
+    apiKey: string;
+    fromEmail: string;
+    fromName: string;
+    publicBaseUrl: string;
+  };
   // Operador de demonstração (apenas backend memory) — provisionado em memória no boot.
   readonly demoOperator?: { email: string; password: string };
 }
@@ -111,6 +118,10 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
   let seeds: ReturnType<typeof createInMemoryAuthStores> | undefined;
   let demo: { email: string; organizationId: string } | undefined;
   const memoryTrialEnds = new Map<string, Date>();
+  const memoryPasswordResets = new Map<
+    string,
+    { subjectType: "user" | "creator"; subjectId: string; expiresAt: Date; usedAt: Date | null }
+  >();
 
   if (opts.backend === "postgres") {
     if (!opts.databaseUrl) throw new Error("databaseUrl obrigatório no backend postgres");
@@ -150,6 +161,128 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
     sessionTtlMs: opts.sessionTtlSeconds * 1000,
     dummyHash: createDummyPasswordHash(),
   });
+
+  const hashResetToken = (token: string): string =>
+    createHash("sha256").update(token).digest("base64url");
+  const requestPasswordReset = async (emailInput: string): Promise<void> => {
+    const email = normalizeEmail(emailInput);
+    const user = await authStores.identities.findUserByEmail(email);
+    const creator = user === null ? await authStores.identities.findCreatorByEmail(email) : null;
+    const subject =
+      user !== null
+        ? { type: "user" as const, id: user.id }
+        : creator !== null
+          ? { type: "creator" as const, id: creator.id }
+          : null;
+    if (subject === null || !opts.passwordRecoveryEmail) return;
+    const token = randomBytes(32).toString("base64url");
+    const tokenHash = hashResetToken(token);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    if (pool) {
+      await pool.query(
+        "insert into password_reset_tokens (id,subject_type,subject_id,token_hash,expires_at) values ($1,$2,$3,$4,$5)",
+        [uuidv7(), subject.type, subject.id, tokenHash, expiresAt],
+      );
+    } else {
+      memoryPasswordResets.set(tokenHash, {
+        subjectType: subject.type,
+        subjectId: subject.id,
+        expiresAt,
+        usedAt: null,
+      });
+    }
+    const resetUrl = `${opts.passwordRecoveryEmail.publicBaseUrl.replace(/\/$/, "")}/?reset=${encodeURIComponent(token)}`;
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "content-type": "application/json", "api-key": opts.passwordRecoveryEmail.apiKey },
+      body: JSON.stringify({
+        sender: {
+          email: opts.passwordRecoveryEmail.fromEmail,
+          name: opts.passwordRecoveryEmail.fromName,
+        },
+        to: [{ email }],
+        subject: "Recuperação de senha — BRITUS",
+        htmlContent: `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1c2733"><div style="background:#123f7b;color:#fff;padding:20px;border-radius:10px 10px 0 0"><h2 style="margin:0">Recuperação de senha — BRITUS</h2></div><div style="background:#f3e6d7;padding:24px;border-radius:0 0 10px 10px"><p>Recebemos uma solicitação para redefinir sua senha.</p><p><a href="${resetUrl}" style="display:inline-block;background:#1e5fbf;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Redefinir senha</a></p><p style="font-size:12px;color:#5a6b7b">Este link é válido por 24 horas e pode ser usado uma única vez. Se você não solicitou, ignore esta mensagem.</p></div></div>`,
+      }),
+    });
+    if (!response.ok) {
+      await audit.record({
+        actorId: subject.id,
+        identityType: subject.type === "creator" ? "platform_creator" : "organization_user",
+        action: "auth.password_reset.request",
+        decision: "deny",
+      });
+      return;
+    }
+    await audit.record({
+      actorId: subject.id,
+      identityType: subject.type === "creator" ? "platform_creator" : "organization_user",
+      action: "auth.password_reset.request",
+      decision: "allow",
+    });
+  };
+  const resetPassword = async (token: string, newPassword: string): Promise<boolean> => {
+    const tokenHash = hashResetToken(token);
+    const now = new Date();
+    let subject: { type: "user" | "creator"; id: string } | null = null;
+    if (pool) {
+      const client = await pool.connect();
+      try {
+        await client.query("begin");
+        const found = await client.query<{ subject_type: "user" | "creator"; subject_id: string }>(
+          "select subject_type,subject_id from password_reset_tokens where token_hash=$1 and used_at is null and expires_at>$2 for update",
+          [tokenHash, now],
+        );
+        const row = found.rows[0];
+        if (!row) {
+          await client.query("rollback");
+          return false;
+        }
+        const secretHash = await hasher.hash(newPassword);
+        const updatedCredential = await client.query(
+          "update credentials set secret_hash=$1,algorithm=$2,updated_at=$3 where subject_type=$4 and subject_id=$5",
+          [secretHash, hasher.algorithm, now, row.subject_type, row.subject_id],
+        );
+        if (updatedCredential.rowCount !== 1) {
+          await client.query("rollback");
+          return false;
+        }
+        await client.query("update password_reset_tokens set used_at=$2 where token_hash=$1", [
+          tokenHash,
+          now,
+        ]);
+        await client.query(
+          "update sessions set revoked_at=$3 where subject_type=$1 and subject_id=$2 and revoked_at is null",
+          [row.subject_type, row.subject_id, now],
+        );
+        await client.query("commit");
+        subject = { type: row.subject_type, id: row.subject_id };
+      } catch (error) {
+        await client.query("rollback");
+        throw error;
+      } finally {
+        client.release();
+      }
+    } else {
+      const record = memoryPasswordResets.get(tokenHash);
+      if (!record || record.usedAt || record.expiresAt <= now || !seeds) return false;
+      seeds.replaceCredential({
+        subjectType: record.subjectType,
+        subjectId: record.subjectId,
+        secretHash: await hasher.hash(newPassword),
+        algorithm: hasher.algorithm,
+      });
+      record.usedAt = now;
+      subject = { type: record.subjectType, id: record.subjectId };
+    }
+    await audit.record({
+      actorId: subject.id,
+      identityType: subject.type === "creator" ? "platform_creator" : "organization_user",
+      action: "auth.password_reset.complete",
+      decision: "allow",
+    });
+    return true;
+  };
 
   const createClient = makeCreateClient({ clients, duplicates: clients });
   const authorizedCreateClient = withAuthorization(
@@ -425,6 +558,8 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
       secureCookie: opts.secureCookie,
       sessionTtlSeconds: opts.sessionTtlSeconds,
       getAccessStatus,
+      requestPasswordReset,
+      resetPassword,
       completeOrganization: async (input) => {
         if (!pool) return;
         await pool.query(

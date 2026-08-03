@@ -28,6 +28,15 @@ export async function start(): Promise<void> {
               publicBaseUrl: config.PUBLIC_BASE_URL,
             }
           : undefined,
+      passwordRecoveryEmail:
+        config.BREVO_API_KEY && config.BREVO_FROM_EMAIL && config.PUBLIC_BASE_URL
+          ? {
+              apiKey: config.BREVO_API_KEY,
+              fromEmail: config.BREVO_FROM_EMAIL,
+              fromName: config.BREVO_FROM_NAME,
+              publicBaseUrl: config.PUBLIC_BASE_URL,
+            }
+          : undefined,
       demoOperator:
         config.BRITUS_DB === "memory" && config.DEMO_OPERATOR_EMAIL && config.DEMO_OPERATOR_PASSWORD
           ? { email: config.DEMO_OPERATOR_EMAIL, password: config.DEMO_OPERATOR_PASSWORD }

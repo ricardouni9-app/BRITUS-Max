@@ -78,23 +78,40 @@ export function makeAuthenticator(deps: AuthenticatorDeps): Authenticator {
 
     async login({ email, password }) {
       const user = await deps.identities.findUserByEmail(normalizeEmail(email));
-      const credential =
-        user !== null ? await deps.credentials.findBySubject({ type: "user", id: user.id }) : null;
+      const creator =
+        user === null ? await deps.identities.findCreatorByEmail(normalizeEmail(email)) : null;
+      const subject =
+        user !== null
+          ? { type: "user" as const, id: user.id }
+          : creator !== null
+            ? { type: "creator" as const, id: creator.id }
+            : null;
+      const credential = subject !== null ? await deps.credentials.findBySubject(subject) : null;
       const valid = await deps.hasher.verify(password, credential?.secretHash ?? deps.dummyHash);
-      if (user === null || credential === null || !valid) {
-        await deps.audit.record({ actorId: null, identityType: "organization_user", action: "auth.login", decision: "deny" });
+      if (subject === null || credential === null || !valid) {
+        await deps.audit.record({
+          actorId: null,
+          identityType: "organization_user",
+          action: "auth.login",
+          decision: "deny",
+        });
         return err(unauthenticatedError("Credenciais inválidas"));
       }
       const now = clock();
       const generated = deps.tokens.generate();
       const session = await deps.sessions.create({
         tokenHash: generated.tokenHash,
-        subjectType: "user",
-        subjectId: user.id,
+        subjectType: subject.type,
+        subjectId: subject.id,
         csrfToken: generated.csrfToken,
         expiresAt: new Date(now.getTime() + deps.sessionTtlMs),
       });
-      await deps.audit.record({ actorId: user.id, identityType: "organization_user", action: "auth.login", decision: "allow" });
+      await deps.audit.record({
+        actorId: subject.id,
+        identityType: subject.type === "creator" ? "platform_creator" : "organization_user",
+        action: "auth.login",
+        decision: "allow",
+      });
       return ok({ token: generated.token, session });
     },
 
@@ -106,7 +123,8 @@ export function makeAuthenticator(deps: AuthenticatorDeps): Authenticator {
       await deps.sessions.revoke(authed.value.id, clock());
       await deps.audit.record({
         actorId: authed.value.subjectId,
-        identityType: authed.value.subjectType === "user" ? "organization_user" : "platform_creator",
+        identityType:
+          authed.value.subjectType === "user" ? "organization_user" : "platform_creator",
         action: "auth.logout",
         decision: "allow",
       });

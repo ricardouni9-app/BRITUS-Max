@@ -62,6 +62,8 @@ export interface CommercialRoutesDeps {
     whatsapp: string | null;
     website: string | null;
   } | null>;
+  readonly requestPasswordReset?: (email: string) => Promise<void>;
+  readonly resetPassword?: (token: string, newPassword: string) => Promise<boolean>;
 }
 
 export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialRoutesDeps): void {
@@ -74,6 +76,52 @@ export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialR
       .send(
         contact ?? { label: "BRITUS", email: null, phone: null, whatsapp: null, website: null },
       );
+  });
+
+  app.post("/public/password-recovery", async (request, reply) => {
+    const now = Date.now();
+    const key = `recovery:${request.ip}`;
+    const previous = attempts.get(key);
+    const bucket =
+      !previous || previous.resetAt <= now ? { count: 0, resetAt: now + 60_000 } : previous;
+    bucket.count += 1;
+    attempts.set(key, bucket);
+    if (bucket.count > 3)
+      return reply.status(429).send({
+        error: { code: "RATE_LIMITED", message: "Aguarde um minuto e tente novamente." },
+      });
+    const body = request.body as { email?: unknown } | null;
+    if (!body || typeof body.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))
+      return reply.status(400).send({
+        error: { code: "VALIDATION_ERROR", message: "Informe um e-mail válido." },
+      });
+    await deps.requestPasswordReset?.(body.email.slice(0, 320));
+    return reply.status(200).send({
+      message: "Se o e-mail estiver cadastrado, você receberá as instruções em breve.",
+    });
+  });
+
+  app.post("/public/password-reset", async (request, reply) => {
+    const body = request.body as { token?: unknown; password?: unknown } | null;
+    if (
+      !body ||
+      typeof body.token !== "string" ||
+      body.token.length < 32 ||
+      typeof body.password !== "string" ||
+      body.password.length < 10
+    )
+      return reply.status(400).send({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Link inválido ou senha com menos de 10 caracteres.",
+        },
+      });
+    const changed = await deps.resetPassword?.(body.token, body.password);
+    if (!changed)
+      return reply.status(400).send({
+        error: { code: "INVALID_TOKEN", message: "Link inválido, expirado ou já utilizado." },
+      });
+    return reply.status(200).send({ message: "Senha redefinida com segurança." });
   });
 
   app.post("/public/trial", async (request, reply) => {

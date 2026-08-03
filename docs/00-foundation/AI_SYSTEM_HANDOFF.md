@@ -26,6 +26,7 @@ Este documento permite que outra IA continue o trabalho sem refazer reconhecimen
 - Suíte integral PostgreSQL executada anteriormente: 163 de 163 testes aprovados.
 - Verificação de produção em 31/07/2026: `/`, `/health` e `/public/platform-contact` retornaram 200; rota `__dev` retornou 404.
 - A apresentação promocional chega ao formulário final, não entra em looping e sincroniza troca de cena com o fim da narração.
+- Recuperação de senha por e-mail usa Brevo, resposta antienumeração, token SHA-256 de uso único com validade de 24 horas e revogação das sessões anteriores. Usuários organizacionais e Criador podem entrar pelo próprio e-mail; o Criador permanece livre de vencimento comercial.
 
 O fluxo de teste é automático no código. O GO financeiro em produção depende da configuração segura das credenciais do Mercado Pago e de um pagamento real de homologação; as lacunas remanescentes estão na seção 11.
 

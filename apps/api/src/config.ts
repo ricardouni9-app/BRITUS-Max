@@ -32,6 +32,9 @@ const configSchema = z.object({
   MP_ACCESS_TOKEN: z.string().min(1).optional(),
   MERCADOPAGO_WEBHOOK_SECRET: z.string().min(1).optional(),
   PUBLIC_BASE_URL: z.string().url().optional(),
+  BREVO_API_KEY: z.string().min(1).optional(),
+  BREVO_FROM_EMAIL: z.string().email().optional(),
+  BREVO_FROM_NAME: z.string().min(1).default("BRITUS"),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
@@ -52,6 +55,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     MP_ACCESS_TOKEN: env.MP_ACCESS_TOKEN,
     MERCADOPAGO_WEBHOOK_SECRET: env.MERCADOPAGO_WEBHOOK_SECRET,
     PUBLIC_BASE_URL: env.PUBLIC_BASE_URL,
+    BREVO_API_KEY: env.BREVO_API_KEY,
+    BREVO_FROM_EMAIL: env.BREVO_FROM_EMAIL,
+    BREVO_FROM_NAME: env.BREVO_FROM_NAME,
   });
 
   // Falha CLARA quando falta configuração essencial ao modo comercial com Postgres.

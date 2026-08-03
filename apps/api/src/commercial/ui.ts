@@ -57,7 +57,10 @@ h2.big{font-size:18px;margin:0 0 2px}
   <label>E-mail</label><input id="lemail" type="email" autocomplete="username"/>
   <label>Senha</label><input id="lpass" type="password" autocomplete="current-password"/>
   <button id="loginBtn">Entrar</button>
+  <button id="forgotOpen" class="link">Esqueci minha senha</button>
   <div id="lmsg" class="msg"></div>
+  <div id="forgotBox" class="hidden"><label>E-mail cadastrado</label><input id="forgotEmail" type="email" autocomplete="email"/><button id="forgotBtn">Enviar recuperação</button><div id="forgotMsg" class="msg"></div></div>
+  <div id="resetBox" class="hidden"><p class="h" style="color:var(--mut);font-size:13px">Defina uma nova senha com pelo menos 10 caracteres.</p><label>Nova senha</label><input id="resetPassword" type="password" minlength="10" autocomplete="new-password"/><button id="resetBtn">Redefinir senha</button><div id="resetMsg" class="msg"></div></div>
 </div>
 
 <div id="appView" class="wrap hidden">
@@ -133,6 +136,9 @@ async function boot(){
   const s=await api('GET','/auth/session');
   if(!s.data||!s.data.authenticated){show('promo');return}
   csrf=s.data.csrfToken;
+  if(s.data.subjectType==='creator'){
+    $('orgtag').textContent='Criador';$('sessinfo').innerHTML='<div class="it"><b>Criador autenticado</b><br><small>Acesso global permanente · sem bloqueio por vencimento</small></div>';show('app');$('accessPanel').innerHTML='<h3>Acesso do Criador ativo</h3><p class="h">Identidade global autenticada. Este acesso não depende de teste, plano ou vencimento.</p>';return
+  }
   let org=s.data.activeOrganizationId;
   if(!org&&s.data.memberships&&s.data.memberships.length){
     const sel=await api('POST','/auth/active-organization',{organizationId:s.data.memberships[0].organizationId});
@@ -176,6 +182,8 @@ async function doLogin(){
   if(!r.ok){$('lmsg').className='msg err';$('lmsg').textContent=r.status===401?'E-mail ou senha inválidos.':errMsg(r.data);return}
   csrf=r.data.csrfToken;await boot();
 }
+async function requestRecovery(){const email=$('forgotEmail').value.trim();$('forgotMsg').className='msg';$('forgotMsg').textContent='Enviando…';const r=await api('POST','/public/password-recovery',{email});$('forgotMsg').className=r.ok?'msg ok':'msg err';$('forgotMsg').textContent=r.ok?r.data.message:errMsg(r.data)}
+async function completePasswordReset(){const token=new URLSearchParams(location.search).get('reset')||'';$('resetMsg').className='msg';$('resetMsg').textContent='Redefinindo…';const r=await api('POST','/public/password-reset',{token,password:$('resetPassword').value});$('resetMsg').className=r.ok?'msg ok':'msg err';$('resetMsg').textContent=r.ok?r.data.message:errMsg(r.data);if(r.ok){history.replaceState({},'',location.pathname);$('resetPassword').value=''}}
 async function logout(){await api('POST','/auth/logout');csrf=null;location.reload()}
 async function trial(){
   $('tmsg').className='msg';$('tmsg').textContent='Criando e liberando seu acesso…';
@@ -206,6 +214,7 @@ async function mkCase(){
   addItem('cslist','<b>'+r.data.title+'</b> <small>'+r.data.status+' · '+r.data.financialClassification+'</small>');
 }
 $('loginBtn').onclick=doLogin;$('lpass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+$('forgotOpen').onclick=()=>{$('forgotBox').classList.toggle('hidden');$('resetBox').classList.add('hidden')};$('forgotBtn').onclick=requestRecovery;$('resetBtn').onclick=completePasswordReset;
 $('openLogin').onclick=()=>show('login');$('trialBtn').onclick=trial;
 $('watchBtn').onclick=()=>{playing=true;$('watchBtn').classList.add('hidden');$('skipBtn').classList.add('hidden');$('voiceBtn').classList.remove('hidden');$('pauseBtn').classList.remove('hidden');$('progress').classList.remove('hidden');sceneStarted=Date.now()};
 $('skipBtn').onclick=finishPresentation;
@@ -213,7 +222,7 @@ $('voiceBtn').onclick=()=>{voiced=!voiced;$('voiceBtn').textContent=voiced?'Desa
 $('pauseBtn').onclick=()=>{if(!playing&&sceneIndex===SCENES.length-1){sceneIndex=0;playing=true;renderScene();$('pauseBtn').textContent='Pausar';if(voiced)playNarration();scrollTo({top:0,behavior:'smooth'});return}playing=!playing;$('pauseBtn').textContent=playing?'Pausar':'Continuar';if(!playing)narration.pause();else{if(voiced)void narration.play();sceneStarted=Date.now()}};
 $('logout').onclick=logout;$('logout2').onclick=logout;
 $('cpbtn').onclick=mkClient;$('atbtn').onclick=mkAtend;$('csbtn').onclick=mkCase;
-renderScene();boot();
+renderScene();if(new URLSearchParams(location.search).has('reset')){show('login');$('resetBox').classList.remove('hidden');$('forgotBox').classList.add('hidden')}else boot();
 </script></body></html>`;
 
 export function registerCommercialUi(app: FastifyInstance): void {

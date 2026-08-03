@@ -41,10 +41,28 @@ describe("modo comercial (memory) — segurança e fluxo", () => {
     expect(page.body).toContain("advanceScene()");
     expect(page.body).not.toContain("speechSynthesis");
     expect(page.body).not.toContain("Telefone (opcional)");
+    expect(page.body).toContain("Esqueci minha senha");
     expect(
       (await c.app.inject({ method: "POST", url: "/public/trial-interest", payload: {} }))
         .statusCode,
     ).toBe(404);
+  });
+
+  it("recuperação não revela cadastro e rejeita token inválido", async () => {
+    const requested = await c.app.inject({
+      method: "POST",
+      url: "/public/password-recovery",
+      payload: { email: "ninguem@britus.test" },
+    });
+    expect(requested.statusCode).toBe(200);
+    expect(requested.json().message).toContain("Se o e-mail estiver cadastrado");
+    const invalid = await c.app.inject({
+      method: "POST",
+      url: "/public/password-reset",
+      payload: { token: "x".repeat(43), password: "nova-senha-forte" },
+    });
+    expect(invalid.statusCode).toBe(400);
+    expect(invalid.json().error.message).toContain("inválido");
   });
 
   it("serve as sete narrações institucionais sem expor caminho local", async () => {

@@ -23,7 +23,14 @@ import { sessions, type SessionRow } from "../schema/sessions.js";
 import { PersistenceError, translatePersistenceError } from "./errors.js";
 
 function toUser(r: UserRow): User {
-  return { id: r.id, name: r.name, email: r.email, status: r.status, createdAt: r.createdAt, updatedAt: r.updatedAt };
+  return {
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    status: r.status,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
 }
 function toCreator(r: PlatformIdentityRow): PlatformIdentity {
   return { id: r.id, kind: r.kind, label: r.label, createdAt: r.createdAt, updatedAt: r.updatedAt };
@@ -58,7 +65,23 @@ export function createDrizzleIdentityReader(db: NodePgDatabase): IdentityReader 
   return {
     async findUserByEmail(normalizedEmail) {
       try {
-        const [row] = await db.select({ id: users.id }).from(users).where(eq(users.email, normalizedEmail)).limit(1);
+        const [row] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.email, normalizedEmail))
+          .limit(1);
+        return row ?? null;
+      } catch (error) {
+        throw translatePersistenceError(error);
+      }
+    },
+    async findCreatorByEmail(normalizedEmail) {
+      try {
+        const [row] = await db
+          .select({ id: platformIdentities.id })
+          .from(platformIdentities)
+          .where(eq(platformIdentities.email, normalizedEmail))
+          .limit(1);
         return row ?? null;
       } catch (error) {
         throw translatePersistenceError(error);
@@ -74,7 +97,11 @@ export function createDrizzleIdentityReader(db: NodePgDatabase): IdentityReader 
     },
     async findCreatorById(id) {
       try {
-        const [row] = await db.select().from(platformIdentities).where(eq(platformIdentities.id, id)).limit(1);
+        const [row] = await db
+          .select()
+          .from(platformIdentities)
+          .where(eq(platformIdentities.id, id))
+          .limit(1);
         return row === undefined ? null : toCreator(row);
       } catch (error) {
         throw translatePersistenceError(error);
@@ -88,7 +115,10 @@ export function createDrizzleMembershipReader(db: NodePgDatabase): MembershipRea
     async listByUser(userId) {
       try {
         const rows = await db
-          .select({ organizationId: organizationMemberships.organizationId, role: organizationMemberships.role })
+          .select({
+            organizationId: organizationMemberships.organizationId,
+            role: organizationMemberships.role,
+          })
           .from(organizationMemberships)
           .where(eq(organizationMemberships.userId, userId));
         return rows;
@@ -106,7 +136,9 @@ export function createDrizzleCredentialStore(db: NodePgDatabase): CredentialStor
         const [row] = await db
           .select()
           .from(credentials)
-          .where(and(eq(credentials.subjectType, subject.type), eq(credentials.subjectId, subject.id)))
+          .where(
+            and(eq(credentials.subjectType, subject.type), eq(credentials.subjectId, subject.id)),
+          )
           .limit(1);
         return row === undefined ? null : toCredential(row);
       } catch (error) {
@@ -125,8 +157,12 @@ export function createDrizzleSessionStore(db: NodePgDatabase): SessionStore {
         if (!(await subjectExists(db, subjectType, subjectId))) {
           throw new PersistenceError("INTERNAL_SERVER_ERROR", "Subject inexistente para a sessão");
         }
-        const [row] = await db.insert(sessions).values({ tokenHash, subjectType, subjectId, csrfToken, expiresAt }).returning();
-        if (row === undefined) throw new PersistenceError("INTERNAL_SERVER_ERROR", "Falha ao criar sessão");
+        const [row] = await db
+          .insert(sessions)
+          .values({ tokenHash, subjectType, subjectId, csrfToken, expiresAt })
+          .returning();
+        if (row === undefined)
+          throw new PersistenceError("INTERNAL_SERVER_ERROR", "Falha ao criar sessão");
         return toSession(row);
       } catch (error) {
         if (error instanceof PersistenceError) throw error;
@@ -138,7 +174,13 @@ export function createDrizzleSessionStore(db: NodePgDatabase): SessionStore {
         const [row] = await db
           .select()
           .from(sessions)
-          .where(and(eq(sessions.tokenHash, tokenHash), isNull(sessions.revokedAt), gt(sessions.expiresAt, now)))
+          .where(
+            and(
+              eq(sessions.tokenHash, tokenHash),
+              isNull(sessions.revokedAt),
+              gt(sessions.expiresAt, now),
+            ),
+          )
           .limit(1);
         return row === undefined ? null : toSession(row);
       } catch (error) {
@@ -159,7 +201,8 @@ export function createDrizzleSessionStore(db: NodePgDatabase): SessionStore {
           .set({ activeOrganizationId: organizationId })
           .where(eq(sessions.id, sessionId))
           .returning();
-        if (row === undefined) throw new PersistenceError("INTERNAL_SERVER_ERROR", "Sessão não encontrada");
+        if (row === undefined)
+          throw new PersistenceError("INTERNAL_SERVER_ERROR", "Sessão não encontrada");
         return toSession(row);
       } catch (error) {
         if (error instanceof PersistenceError) throw error;
@@ -170,12 +213,24 @@ export function createDrizzleSessionStore(db: NodePgDatabase): SessionStore {
 }
 
 // Verifica a existência do subject polimórfico (user|creator) na tabela correta.
-async function subjectExists(db: NodePgDatabase, subjectType: SubjectType, subjectId: string): Promise<boolean> {
+async function subjectExists(
+  db: NodePgDatabase,
+  subjectType: SubjectType,
+  subjectId: string,
+): Promise<boolean> {
   if (subjectType === "user") {
-    const [r] = await db.select({ id: users.id }).from(users).where(eq(users.id, subjectId)).limit(1);
+    const [r] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, subjectId))
+      .limit(1);
     return r !== undefined;
   }
-  const [r] = await db.select({ id: platformIdentities.id }).from(platformIdentities).where(eq(platformIdentities.id, subjectId)).limit(1);
+  const [r] = await db
+    .select({ id: platformIdentities.id })
+    .from(platformIdentities)
+    .where(eq(platformIdentities.id, subjectId))
+    .limit(1);
   return r !== undefined;
 }
 
@@ -186,10 +241,40 @@ export function createDrizzleCredentialWriter(db: NodePgDatabase): CredentialWri
     async create({ subjectType, subjectId, secretHash, algorithm }) {
       try {
         if (!(await subjectExists(db, subjectType, subjectId))) {
-          throw new PersistenceError("INTERNAL_SERVER_ERROR", "Subject inexistente para a credencial");
+          throw new PersistenceError(
+            "INTERNAL_SERVER_ERROR",
+            "Subject inexistente para a credencial",
+          );
         }
-        const [row] = await db.insert(credentials).values({ subjectType, subjectId, secretHash, algorithm }).returning();
-        if (row === undefined) throw new PersistenceError("INTERNAL_SERVER_ERROR", "Falha ao criar credencial");
+        const [row] = await db
+          .insert(credentials)
+          .values({ subjectType, subjectId, secretHash, algorithm })
+          .returning();
+        if (row === undefined)
+          throw new PersistenceError("INTERNAL_SERVER_ERROR", "Falha ao criar credencial");
+        return toCredential(row);
+      } catch (error) {
+        if (error instanceof PersistenceError) throw error;
+        throw translatePersistenceError(error);
+      }
+    },
+    async replace({ subjectType, subjectId, secretHash, algorithm }) {
+      try {
+        if (!(await subjectExists(db, subjectType, subjectId))) {
+          throw new PersistenceError(
+            "INTERNAL_SERVER_ERROR",
+            "Subject inexistente para a credencial",
+          );
+        }
+        const [row] = await db
+          .update(credentials)
+          .set({ secretHash, algorithm, updatedAt: new Date() })
+          .where(
+            and(eq(credentials.subjectType, subjectType), eq(credentials.subjectId, subjectId)),
+          )
+          .returning();
+        if (row === undefined)
+          throw new PersistenceError("INTERNAL_SERVER_ERROR", "Credencial inexistente");
         return toCredential(row);
       } catch (error) {
         if (error instanceof PersistenceError) throw error;
@@ -202,7 +287,11 @@ export function createDrizzleCredentialWriter(db: NodePgDatabase): CredentialWri
 // Writers usados pelo bootstrap (criação idempotente coordenada no serviço de bootstrap).
 export interface DrizzleAuthWriters {
   ensureUser(input: { name: string; email: string }): Promise<User>;
-  ensureMembership(input: { organizationId: string; userId: string; role: UserRole }): Promise<void>;
+  ensureMembership(input: {
+    organizationId: string;
+    userId: string;
+    role: UserRole;
+  }): Promise<void>;
   ensureCreator(input: { label: string }): Promise<PlatformIdentity>;
   findAnyCreator(): Promise<PlatformIdentity | null>;
 }
@@ -215,7 +304,8 @@ export function createDrizzleAuthWriters(db: NodePgDatabase): DrizzleAuthWriters
         const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
         if (existing !== undefined) return toUser(existing);
         const [row] = await db.insert(users).values({ name, email }).returning();
-        if (row === undefined) throw new PersistenceError("INTERNAL_SERVER_ERROR", "Falha ao criar usuário");
+        if (row === undefined)
+          throw new PersistenceError("INTERNAL_SERVER_ERROR", "Falha ao criar usuário");
         return toUser(row);
       } catch (error) {
         if (error instanceof PersistenceError) throw error;
@@ -225,7 +315,10 @@ export function createDrizzleAuthWriters(db: NodePgDatabase): DrizzleAuthWriters
     // Idempotente por (organization_id, user_id) — `onConflictDoNothing` cobre concorrência.
     async ensureMembership({ organizationId, userId, role }) {
       try {
-        await db.insert(organizationMemberships).values({ organizationId, userId, role }).onConflictDoNothing();
+        await db
+          .insert(organizationMemberships)
+          .values({ organizationId, userId, role })
+          .onConflictDoNothing();
       } catch (error) {
         throw translatePersistenceError(error);
       }
@@ -235,8 +328,13 @@ export function createDrizzleAuthWriters(db: NodePgDatabase): DrizzleAuthWriters
     async ensureCreator({ label }) {
       try {
         await db.insert(platformIdentities).values({ label }).onConflictDoNothing();
-        const [row] = await db.select().from(platformIdentities).where(eq(platformIdentities.kind, "creator")).limit(1);
-        if (row === undefined) throw new PersistenceError("INTERNAL_SERVER_ERROR", "Falha ao provisionar Criador");
+        const [row] = await db
+          .select()
+          .from(platformIdentities)
+          .where(eq(platformIdentities.kind, "creator"))
+          .limit(1);
+        if (row === undefined)
+          throw new PersistenceError("INTERNAL_SERVER_ERROR", "Falha ao provisionar Criador");
         return toCreator(row);
       } catch (error) {
         if (error instanceof PersistenceError) throw error;
@@ -245,7 +343,11 @@ export function createDrizzleAuthWriters(db: NodePgDatabase): DrizzleAuthWriters
     },
     async findAnyCreator() {
       try {
-        const [row] = await db.select().from(platformIdentities).where(eq(platformIdentities.kind, "creator")).limit(1);
+        const [row] = await db
+          .select()
+          .from(platformIdentities)
+          .where(eq(platformIdentities.kind, "creator"))
+          .limit(1);
         return row === undefined ? null : toCreator(row);
       } catch (error) {
         throw translatePersistenceError(error);

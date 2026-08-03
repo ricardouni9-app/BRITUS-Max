@@ -10,6 +10,7 @@ import type {
 // Leitura de identidades (usuário organizacional e Criador) — separada da credencial.
 export interface IdentityReader {
   findUserByEmail(normalizedEmail: string): Promise<{ readonly id: string } | null>;
+  findCreatorByEmail(normalizedEmail: string): Promise<{ readonly id: string } | null>;
   findUserById(id: string): Promise<User | null>;
   findCreatorById(id: string): Promise<PlatformIdentity | null>;
 }
@@ -21,12 +22,21 @@ export interface MembershipReader {
 
 // Credencial por subject (1:1). Retorna apenas o hash + metadados — nunca senha.
 export interface CredentialStore {
-  findBySubject(subject: { readonly type: SubjectType; readonly id: string }): Promise<Credential | null>;
+  findBySubject(subject: {
+    readonly type: SubjectType;
+    readonly id: string;
+  }): Promise<Credential | null>;
 }
 
 // Escrita de credencial (bootstrap/provisionamento). Recebe SÓ o hash — nunca a senha.
 export interface CredentialWriter {
   create(input: {
+    readonly subjectType: SubjectType;
+    readonly subjectId: string;
+    readonly secretHash: string;
+    readonly algorithm: string;
+  }): Promise<Credential>;
+  replace(input: {
     readonly subjectType: SubjectType;
     readonly subjectId: string;
     readonly secretHash: string;

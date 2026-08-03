@@ -25,6 +25,8 @@ export const authorizationActionSchema = z.enum([
   "emergency_access.start",
   // autenticação/sessão (eventos auditáveis; NÃO são ações globais)
   "auth.login",
+  "auth.password_reset.request",
+  "auth.password_reset.complete",
   "auth.logout",
   "session.select_organization",
 ]);

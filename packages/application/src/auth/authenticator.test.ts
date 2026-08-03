@@ -45,6 +45,9 @@ function identityReader(user: User | null): IdentityReader {
     async findUserByEmail(normalized) {
       return user !== null && user.email === normalized ? { id: user.id } : null;
     },
+    async findCreatorByEmail() {
+      return null;
+    },
     async findUserById(id) {
       return user !== null && user.id === id ? user : null;
     },
@@ -98,7 +101,8 @@ function sessionStore(clock: () => Date): SessionStore {
       const id = tokenToId.get(tokenHash);
       if (id === undefined) return null;
       const s = byId.get(id);
-      if (s === undefined || s.revokedAt != null || at.getTime() >= s.expiresAt.getTime()) return null;
+      if (s === undefined || s.revokedAt != null || at.getTime() >= s.expiresAt.getTime())
+        return null;
       return s;
     },
     async revoke(id, at) {
@@ -150,6 +154,41 @@ function build(opts: { orgIds?: readonly string[]; now?: () => Date } = {}) {
 }
 
 describe("makeAuthenticator", () => {
+  it("permite login da identidade global do Criador por e-mail", async () => {
+    const creatorId = "01920000-0000-7000-8000-000000000099";
+    const clock = (): Date => new Date();
+    const auth = makeAuthenticator({
+      identities: {
+        async findUserByEmail() {
+          return null;
+        },
+        async findCreatorByEmail(email) {
+          return email === "criador@britus.test" ? { id: creatorId } : null;
+        },
+        async findUserById() {
+          return null;
+        },
+        async findCreatorById(id) {
+          return id === creatorId
+            ? { id, kind: "creator", label: "Criador", createdAt: clock(), updatedAt: clock() }
+            : null;
+        },
+      },
+      credentials: credentialStore({ ...credential, subjectType: "creator", subjectId: creatorId }),
+      hasher,
+      tokens: tokenFactory(),
+      sessions: sessionStore(clock),
+      memberships: membershipReader([]),
+      audit: createInMemoryAuditLog(),
+      sessionTtlMs: 60 * 60 * 1000,
+      dummyHash: "H:__nonexistent__",
+      now: clock,
+    });
+    const login = await auth.login({ email: "CRIADOR@BRITUS.TEST", password: "correct-horse" });
+    expect(login.ok).toBe(true);
+    if (login.ok) expect(login.value.session.subjectType).toBe("creator");
+  });
+
   it("credencial válida cria sessão; sessão válida resolve a identidade", async () => {
     const auth = build();
     const login = await auth.login({ email: "Ricardo@Britus.test", password: "correct-horse" });
@@ -213,17 +252,32 @@ describe("makeAuthenticator", () => {
     const csrfToken = login.value.session.csrfToken;
 
     // Sem org ativa selecionada → VALIDATION_ERROR (não assume tenant).
-    const noOrg = await auth.resolveOrganizationContext({ token, csrfToken, action: "client.create", resourceType: "client" });
+    const noOrg = await auth.resolveOrganizationContext({
+      token,
+      csrfToken,
+      action: "client.create",
+      resourceType: "client",
+    });
     expect(noOrg.ok).toBe(false);
     if (!noOrg.ok) expect(noOrg.error.code).toBe("VALIDATION_ERROR");
 
     // CSRF inválido → FORBIDDEN.
     await auth.selectActiveOrganization({ token, organizationId: ORG_A });
-    const badCsrf = await auth.resolveOrganizationContext({ token, csrfToken: "errado", action: "client.create", resourceType: "client" });
+    const badCsrf = await auth.resolveOrganizationContext({
+      token,
+      csrfToken: "errado",
+      action: "client.create",
+      resourceType: "client",
+    });
     expect(badCsrf.ok).toBe(false);
     if (!badCsrf.ok) expect(badCsrf.error.code).toBe("FORBIDDEN");
 
-    const ctx = await auth.resolveOrganizationContext({ token, csrfToken, action: "client.create", resourceType: "client" });
+    const ctx = await auth.resolveOrganizationContext({
+      token,
+      csrfToken,
+      action: "client.create",
+      resourceType: "client",
+    });
     expect(ctx.ok).toBe(true);
     if (ctx.ok) {
       expect(ctx.value.identityType).toBe("organization_user");
