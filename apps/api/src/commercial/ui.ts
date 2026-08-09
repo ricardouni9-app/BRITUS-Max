@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+﻿import type { FastifyInstance } from "fastify";
 import { createReadStream } from "node:fs";
 
 // Interface COMERCIAL mínima (same-origin). Usa EXCLUSIVAMENTE rotas legítimas:
@@ -33,7 +33,7 @@ h2.big{font-size:18px;margin:0 0 2px}
 .promo{max-width:1040px;margin:24px auto;padding:0 18px}.stage{min-height:430px;border-radius:22px;padding:42px;background:linear-gradient(135deg,#071a38 0%,#123f7b 58%,#1e5fbf 100%);color:#fff;display:grid;place-items:center;text-align:center;position:relative;overflow:hidden;box-shadow:0 24px 60px rgba(7,26,56,.18)}
 .stage:before{content:"";position:absolute;inset:-20%;background:repeating-linear-gradient(118deg,transparent 0 86px,rgba(244,214,211,.16) 87px 89px,transparent 90px 154px,rgba(236,72,153,.12) 155px 157px);transform:rotate(-2deg);pointer-events:none}.stage:after{content:"";position:absolute;width:360px;height:360px;border:1px solid rgba(244,214,211,.35);border-radius:50%;right:-170px;top:-185px;box-shadow:0 0 0 26px rgba(236,72,153,.035);pointer-events:none}.scene{position:relative;z-index:1;max-width:780px;padding:26px 30px;border:1px solid rgba(244,214,211,.2);border-radius:18px;background:rgba(7,26,56,.14);backdrop-filter:blur(2px)}.scene h1{font-size:clamp(30px,5vw,54px);line-height:1.08;margin:0 0 20px;color:#fff8ee}.caption{font-size:clamp(17px,2vw,22px);line-height:1.55;color:#f8efe6}.caption span{display:block}.pcontrols{display:flex;gap:10px;align-items:center;margin-top:14px}.pcontrols button{width:auto;margin:0}.promo .pcontrols .ghost{background:#f3e6d7;color:#164a97;border:1px solid #ddcbbc}.progress{height:5px;background:#ead9ce;border-radius:9px;overflow:hidden;flex:1}.progress i{display:block;height:100%;background:linear-gradient(90deg,#f4d6d3,#ec4899);width:0;transition:width .25s}.trial{margin:18px auto 0;max-width:720px;border:1px solid #d8c5b7;border-top:3px solid #ec4899;background:linear-gradient(135deg,#f3e6d7 0 80%,#fff 80%);box-shadow:0 16px 36px rgba(22,74,151,.1)}.trialgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;gap:9px;align-items:flex-start;color:var(--mut);font-size:12px}.check input{width:auto;margin-top:3px}.hp{position:absolute;left:-9999px}.topcta{width:auto;margin:0;padding:8px 13px}
 @media(max-width:700px){.grid,.trialgrid{grid-template-columns:1fr}.stage{min-height:390px;padding:28px 18px}.promo{padding:0 10px}}
-</style></head><body>
+.app-shell{max-width:1480px;margin:0 auto;display:grid;grid-template-columns:252px 1fr;min-height:calc(100vh - 61px)}.sidebar{background:#092652;color:#fff;padding:24px 16px}.side-title{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#9db8de;margin:20px 12px 8px}.navbtn{width:100%;margin:3px 0;padding:11px 13px;text-align:left;background:transparent;color:#dce9fb;border:1px solid transparent}.navbtn:hover,.navbtn.active{background:rgba(255,255,255,.1);border-color:rgba(244,214,211,.22)}.workspace{padding:28px;background:linear-gradient(145deg,#edf3fb 0 72%,#f3e6d7 100%);min-width:0}.page{display:none}.page.active{display:block}.pagehead{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:20px}.pagehead h1{font-size:27px;margin:0;color:#0b2b5b}.pagehead p{margin:4px 0;color:var(--mut)}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.metric{background:#fff;border:1px solid #dbe5f2;border-radius:14px;padding:18px;box-shadow:0 8px 25px rgba(11,43,91,.06)}.metric small{color:var(--mut);text-transform:uppercase;font-size:10px}.metric strong{font-size:25px;display:block;margin-top:6px;color:#123f7b}.widegrid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px;margin-top:16px}.split{display:grid;grid-template-columns:360px 1fr;gap:16px}.tablewrap{overflow:auto}.datatable{width:100%;border-collapse:collapse;font-size:13px}.datatable th{text-align:left;color:#5a6b7b;background:#f5f8fc;padding:10px}.datatable td{padding:11px 10px;border-bottom:1px solid #edf1f5}.formrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}textarea{width:100%;min-height:105px;padding:11px;border:1px solid var(--line);border-radius:8px;font:inherit}.badge{padding:3px 8px;border-radius:999px;background:#e8f1ff;color:#1657a6;font-size:11px}.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.day{min-height:98px;background:#fff;border:1px solid #dbe5f2;border-radius:10px;padding:8px}.day.has{border-top:3px solid #ec4899;cursor:pointer}.quick{width:auto;margin:0;padding:9px 14px}@media(max-width:1050px){.cards{grid-template-columns:1fr 1fr}.widegrid,.split{grid-template-columns:1fr}.app-shell{grid-template-columns:86px 1fr}.sidebar .navlabel,.side-title{display:none}.workspace{padding:18px}}@media(max-width:650px){.app-shell{display:block}.sidebar{display:flex;overflow:auto;padding:8px}.navbtn{min-width:48px}.workspace{padding:14px}.formrow{grid-template-columns:1fr}.calendar{grid-template-columns:repeat(2,1fr)}}</style></head><body>
 <div class="top"><span class="brand">BRITUS<b> · Operações organizadas</b></span><span class="sp"></span>
   <button id="openLogin" class="ghost topcta">Entrar</button>
   <span id="orgtag" class="orgtag hidden"></span>
@@ -63,41 +63,21 @@ h2.big{font-size:18px;margin:0 0 2px}
   <div id="resetBox" class="hidden"><p class="h" style="color:var(--mut);font-size:13px">Defina uma nova senha com pelo menos 10 caracteres.</p><label>Nova senha</label><input id="resetPassword" type="password" minlength="10" autocomplete="new-password"/><button id="resetBtn">Redefinir senha</button><div id="resetMsg" class="msg"></div></div>
 </div>
 
-<div id="appView" class="wrap hidden">
-  <div id="accessPanel" class="pan" style="margin-bottom:16px"></div>
-  <div class="grid">
-    <div class="pan">
-      <h3>Novo cliente</h3><p class="h">Cadastro do cliente na organização ativa.</p>
-      <label>Tipo</label><select id="cptype"><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select>
-      <label>Nome / Razão social</label><input id="cpname" placeholder="Ex.: Maria Souza"/>
-      <button id="cpbtn">Cadastrar cliente</button>
-      <div id="cpmsg" class="msg"></div>
-      <div id="cplist" class="list"></div>
-    </div>
-    <div class="pan">
-      <h3>Novo atendimento</h3><p class="h">Registro do contato/triagem inicial.</p>
-      <label>Canal de origem</label><input id="atchan" value="Indicação"/>
-      <label>Resumo</label><input id="atsum" placeholder="Ex.: Demanda trabalhista — rescisão"/>
-      <button id="atbtn">Registrar atendimento</button>
-      <div id="atmsg" class="msg"></div>
-      <div id="atlist" class="list"></div>
-    </div>
-    <div class="pan">
-      <h3>Novo caso</h3><p class="h">Abertura de caso classificado.</p>
-      <label>Título</label><input id="cstitle" placeholder="Ex.: Reclamatória Trabalhista"/>
-      <label>Classificação financeira</label><select id="csfin"><option value="baixo">Baixo</option><option value="medio" selected>Médio</option><option value="alto">Alto</option></select>
-      <button id="csbtn">Abrir caso</button>
-      <div id="csmsg" class="msg"></div>
-      <div id="cslist" class="list"></div>
-    </div>
-    <div class="pan">
-      <h3>Sessão</h3><p class="h">Organização ativa e encerramento seguro.</p>
-      <div id="sessinfo" class="list"></div>
-      <button id="logout2" class="ghost">Encerrar sessão</button>
-    </div>
-  </div>
-</div>
-
+<div id="appView" class="hidden"><div class="app-shell"><aside class="sidebar"><div style="padding:0 12px 12px;font-weight:800;font-size:18px">BRITUS <span style="color:#f3d7d2">MAX</span></div>
+<div class="side-title">Visão geral</div><button class="navbtn active" data-page="dashboard">◈ <span class="navlabel">Painel executivo</span></button>
+<div class="side-title">Operação</div><button class="navbtn" data-page="clients">♙ <span class="navlabel">Clientes</span></button><button class="navbtn" data-page="atendimentos">◎ <span class="navlabel">Atendimentos</span></button><button class="navbtn" data-page="cases">▣ <span class="navlabel">Casos e controles</span></button><button class="navbtn" data-page="calendar">▦ <span class="navlabel">Calendário</span></button>
+<div class="side-title">Gestão</div><button class="navbtn" data-page="finance">◒ <span class="navlabel">Financeiro</span></button><button class="navbtn" data-page="reports">▤ <span class="navlabel">Relatórios</span></button><button class="navbtn" data-page="team">♧ <span class="navlabel">Equipe e pacotes</span></button><button class="navbtn" data-page="settings">⚙ <span class="navlabel">Configurações</span></button></aside>
+<main class="workspace"><div id="accessPanel" class="pan" style="margin-bottom:16px"></div>
+<section id="page-dashboard" class="page active"><div class="pagehead"><div><h1>Painel executivo</h1><p>Operação e financeiro em uma única visão.</p></div><button class="quick" data-goto="cases">Novo caso</button></div><div class="cards"><div class="metric"><small>Clientes</small><strong id="mClients">0</strong></div><div class="metric"><small>Casos ativos</small><strong id="mCases">0</strong></div><div class="metric"><small>A receber</small><strong id="mReceivable">R$ 0</strong></div><div class="metric"><small>Recebido</small><strong id="mReceived">R$ 0</strong></div></div><div class="widegrid"><div class="pan"><h3>Casos recentes</h3><div id="dashCases"></div></div><div class="pan"><h3>Próximos recebimentos</h3><div id="dashReceivables"></div></div></div></section>
+<section id="page-clients" class="page"><div class="pagehead"><div><h1>Clientes</h1><p>Cadastro central e consulta imediata.</p></div></div><div class="split"><div class="pan"><h3>Novo cliente</h3><label>Tipo</label><select id="cptype"><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select><label>Nome / Razão social</label><input id="cpname"/><button id="cpbtn">Cadastrar cliente</button><div id="cpmsg" class="msg"></div></div><div class="pan"><div id="cplist"></div></div></div></section>
+<section id="page-atendimentos" class="page"><div class="pagehead"><div><h1>Atendimentos</h1><p>Da primeira conversa à contratação.</p></div></div><div class="split"><div class="pan"><h3>Novo atendimento</h3><label>Origem</label><input id="atchan" value="Indicação"/><label>Resumo</label><textarea id="atsum"></textarea><button id="atbtn">Registrar atendimento</button><div id="atmsg" class="msg"></div></div><div class="pan"><div id="atlist"></div></div></div></section>
+<section id="page-cases" class="page"><div class="pagehead"><div><h1>Casos e controles</h1><p>Processos jurídicos e trabalhos de qualquer atividade profissional.</p></div></div><div class="split"><div><div class="pan"><h3>Abrir caso</h3><label>Título</label><input id="cstitle"/><label>Classificação financeira</label><select id="csfin"><option value="baixo">Baixo</option><option value="medio" selected>Médio</option><option value="alto">Alto</option></select><button id="csbtn">Abrir caso</button><div id="csmsg" class="msg"></div></div><div class="pan" style="margin-top:16px"><h3>Relato do caso</h3><label>Caso</label><select id="noteCase"></select><textarea id="noteText"></textarea><div class="formrow"><button id="voiceNote" class="ghost">🎙 Ditado por voz</button><button id="saveNote">Salvar relato</button></div><div id="noteMsg" class="msg"></div></div></div><div class="pan"><div id="cslist"></div><h3 style="margin-top:22px">Histórico</h3><div id="notesList"></div></div></div></section>
+<section id="page-finance" class="page"><div class="pagehead"><div><h1>Financeiro por caso</h1><p>Conta corrente, pagamentos e saldo.</p></div></div><div class="cards"><div class="metric"><small>Contratado</small><strong id="fContracted">R$ 0</strong></div><div class="metric"><small>Recebido</small><strong id="fPaid">R$ 0</strong></div><div class="metric"><small>Saldo</small><strong id="fBalance">R$ 0</strong></div><div class="metric"><small>Em aberto</small><strong id="fOpen">0</strong></div></div><div class="widegrid"><div class="pan"><h3>Contas dos casos</h3><div id="financeTable"></div></div><div><div class="pan"><h3>Definir valores</h3><label>Caso</label><select id="finCase"></select><div class="formrow"><input id="finQuoted" type="number" step=".01" placeholder="Cobrado no atendimento"/><input id="finContracted" type="number" step=".01" placeholder="Valor fechado"/></div><label>Previsão</label><input id="finExpected" type="date"/><input id="finDesc" placeholder="Descrição"/><button id="saveFinance">Salvar conta</button><div id="finMsg" class="msg"></div></div><div class="pan" style="margin-top:16px"><h3>Registrar pagamento</h3><select id="payCase"></select><div class="formrow"><input id="payAmount" type="number" step=".01" placeholder="Valor"/><input id="payDate" type="date"/></div><input id="payNote" placeholder="Observação"/><button id="savePayment">Registrar e abater saldo</button><div id="payMsg" class="msg"></div></div></div></div></section>
+<section id="page-calendar" class="page"><div class="pagehead"><div><h1>Calendário de recebimentos</h1><p>Clique no dia para consultar os casos.</p></div></div><div class="pan"><div id="calendarTitle"></div><div id="calendarGrid" class="calendar"></div></div><div id="calendarDetail" class="pan" style="margin-top:16px"></div></section>
+<section id="page-reports" class="page"><div class="pagehead"><div><h1>Relatórios</h1><p>Informações operacionais e financeiras.</p></div><button id="printReport" class="quick">Imprimir / PDF</button></div><div class="widegrid"><div class="pan"><h3>Financeiro</h3><div id="reportFinance"></div></div><div class="pan"><h3>Operação</h3><div id="reportOperations"></div></div></div><div class="pan" style="margin-top:16px"><div id="reportPayments"></div></div></section>
+<section id="page-team" class="page"><div class="pagehead"><div><h1>Equipe e pacotes</h1><p>Usuários, acréscimos e ampliações.</p></div></div><div class="widegrid"><div class="pan"><h3>Pacote atual</h3><div id="teamSummary"></div></div><div class="pan"><h3>Configurar ampliação</h3><label>Usuários</label><input id="teamSeats" type="number" min="1" value="1"/><label>Valor por adicional</label><input id="teamPrice" type="number" step=".01"/><button id="saveTeam">Registrar pacote</button><div id="teamMsg" class="msg"></div></div></div></section>
+<section id="page-settings" class="page"><div class="pagehead"><div><h1>Configurações</h1><p>Organização e segurança.</p></div></div><div class="widegrid"><div class="pan"><h3>Sessão</h3><div id="sessinfo"></div><button id="logout2" class="ghost">Encerrar sessão</button></div><div class="pan"><h3>Proteções</h3><p>Dados isolados por organização.</p><p>Aquisições independentes dos demais sistemas.</p><p>Acesso permanente do Criador.</p></div></div></section>
+</main></div></div>
 <script>
 const AREA=${JSON.stringify(DEFAULT_AREA)};
 let csrf=null;
@@ -223,7 +203,7 @@ $('pauseBtn').onclick=()=>{if(!playing&&sceneIndex===SCENES.length-1){sceneIndex
 $('logout').onclick=logout;$('logout2').onclick=logout;
 $('cpbtn').onclick=mkClient;$('atbtn').onclick=mkAtend;$('csbtn').onclick=mkCase;
 renderScene();if(new URLSearchParams(location.search).has('reset')){show('login');$('resetBox').classList.remove('hidden');$('forgotBox').classList.add('hidden')}else boot();
-</script></body></html>`;
+</script><script src="/assets/app-v2.js"></script></body></html>`;
 
 export function registerCommercialUi(app: FastifyInstance): void {
   for (let index = 1; index <= 7; index += 1) {
@@ -234,7 +214,14 @@ export function registerCommercialUi(app: FastifyInstance): void {
         .send(createReadStream(new URL(`../../assets/narration/${filename}`, import.meta.url)));
     });
   }
+  app.get("/assets/app-v2.js", async (_request, reply) => {
+    await reply.type("text/javascript; charset=utf-8").send(createReadStream(new URL("../../assets/app-v2.js", import.meta.url)));
+  });
   app.get("/", async (_request, reply) => {
     await reply.type("text/html; charset=utf-8").send(HTML);
   });
 }
+
+
+
+

@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+﻿import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type {
   Authenticator,
   AuthorizedInput,
@@ -64,6 +64,11 @@ export interface CommercialRoutesDeps {
   } | null>;
   readonly requestPasswordReset?: (email: string) => Promise<void>;
   readonly resetPassword?: (token: string, newPassword: string) => Promise<boolean>;
+  readonly getWorkspace?: (organizationId: string) => Promise<unknown>;
+  readonly saveCaseFinance?: (input: { organizationId: string; caseId: string; quotedCents: number; contractedCents: number; description: string; expectedAt: Date | null }) => Promise<void>;
+  readonly registerCasePayment?: (input: { organizationId: string; caseId: string; amountCents: number; paidAt: Date; note: string }) => Promise<void>;
+  readonly registerCaseNote?: (input: { organizationId: string; caseId: string; narrative: string; source: "typed" | "voice" }) => Promise<void>;
+  readonly saveTeamPackage?: (input: { organizationId: string; seats: number; additionalSeatCents: number }) => Promise<void>;
 }
 
 export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialRoutesDeps): void {
@@ -322,6 +327,57 @@ export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialR
     return (await deps.getAccessStatus?.(organizationId))?.allowed ?? true;
   }
 
+  async function workspaceOrganization(request: FastifyRequest, mutate = false): Promise<string | null> {
+    const token = readSessionCookie(request);
+    if (!token) return null;
+    const authed = await deps.authenticator.authenticate(token);
+    if (!authed.ok || !authed.value.activeOrganizationId) return null;
+    if (mutate && request.headers["x-csrf-token"] !== authed.value.csrfToken) return null;
+    return authed.value.activeOrganizationId;
+  }
+
+  app.get("/workspace", async (request, reply) => {
+    const organizationId = await workspaceOrganization(request);
+    if (!organizationId) return reply.status(401).send({ error: { code: "UNAUTHENTICATED", message: "Sessão inválida" } });
+    if (!(await accessAllowed(organizationId))) return reply.status(402).send({ error: { code: "TRIAL_ENDED", message: "Escolha um plano para continuar." } });
+    return reply.status(200).send((await deps.getWorkspace?.(organizationId)) ?? {});
+  });
+
+  app.post("/workspace/case-finance", async (request, reply) => {
+    const organizationId = await workspaceOrganization(request, true);
+    const b = request.body as Record<string, unknown> | null;
+    if (!organizationId) return reply.status(403).send({ error: { code: "FORBIDDEN", message: "Sessão inválida" } });
+    if (!b || typeof b.caseId !== "string" || !Number.isInteger(b.quotedCents) || !Number.isInteger(b.contractedCents)) return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: "Informe caso e valores válidos." } });
+    await deps.saveCaseFinance?.({ organizationId, caseId: b.caseId, quotedCents: Number(b.quotedCents), contractedCents: Number(b.contractedCents), description: typeof b.description === "string" ? b.description.slice(0, 500) : "", expectedAt: typeof b.expectedAt === "string" && b.expectedAt ? new Date(b.expectedAt) : null });
+    return reply.status(201).send({ saved: true });
+  });
+
+  app.post("/workspace/payments", async (request, reply) => {
+    const organizationId = await workspaceOrganization(request, true);
+    const b = request.body as Record<string, unknown> | null;
+    if (!organizationId) return reply.status(403).send({ error: { code: "FORBIDDEN", message: "Sessão inválida" } });
+    if (!b || typeof b.caseId !== "string" || !Number.isInteger(b.amountCents) || Number(b.amountCents) <= 0) return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: "Informe caso e pagamento válido." } });
+    await deps.registerCasePayment?.({ organizationId, caseId: b.caseId, amountCents: Number(b.amountCents), paidAt: typeof b.paidAt === "string" && b.paidAt ? new Date(b.paidAt) : new Date(), note: typeof b.note === "string" ? b.note.slice(0, 500) : "" });
+    return reply.status(201).send({ saved: true });
+  });
+
+  app.post("/workspace/case-notes", async (request, reply) => {
+    const organizationId = await workspaceOrganization(request, true);
+    const b = request.body as Record<string, unknown> | null;
+    if (!organizationId) return reply.status(403).send({ error: { code: "FORBIDDEN", message: "Sessão inválida" } });
+    if (!b || typeof b.caseId !== "string" || typeof b.narrative !== "string" || b.narrative.trim().length < 2) return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: "Informe caso e relato." } });
+    await deps.registerCaseNote?.({ organizationId, caseId: b.caseId, narrative: b.narrative.trim().slice(0, 10000), source: b.source === "voice" ? "voice" : "typed" });
+    return reply.status(201).send({ saved: true });
+  });
+
+  app.post("/workspace/team-package", async (request, reply) => {
+    const organizationId = await workspaceOrganization(request, true);
+    const b = request.body as Record<string, unknown> | null;
+    if (!organizationId) return reply.status(403).send({ error: { code: "FORBIDDEN", message: "Sessão inválida" } });
+    if (!b || !Number.isInteger(b.seats) || Number(b.seats) < 1 || !Number.isInteger(b.additionalSeatCents)) return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: "Informe o pacote de usuários." } });
+    await deps.saveTeamPackage?.({ organizationId, seats: Number(b.seats), additionalSeatCents: Number(b.additionalSeatCents) });
+    return reply.status(201).send({ saved: true });
+  });
   app.post("/atendimentos", async (request, reply) => {
     const c = await ctx(request, "atendimento.register", "atendimento");
     if (!c.ok) {
@@ -395,3 +451,4 @@ export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialR
     );
   });
 }
+

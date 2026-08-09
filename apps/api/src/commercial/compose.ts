@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+﻿import type { FastifyInstance } from "fastify";
 import { uuidv7 } from "uuidv7";
 import { createHash, randomBytes } from "node:crypto";
 import {
@@ -126,6 +126,13 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
   if (opts.backend === "postgres") {
     if (!opts.databaseUrl) throw new Error("databaseUrl obrigatório no backend postgres");
     pool = createDatabasePool({ connectionString: opts.databaseUrl });
+    await pool.query(`CREATE TABLE IF NOT EXISTS case_financial_accounts (organization_id uuid NOT NULL REFERENCES organizations(id), case_id uuid PRIMARY KEY REFERENCES cases(id), quoted_cents integer NOT NULL DEFAULT 0, contracted_cents integer NOT NULL DEFAULT 0, description text NOT NULL DEFAULT '', expected_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+    CREATE INDEX IF NOT EXISTS case_financial_accounts_org_idx ON case_financial_accounts(organization_id);
+    CREATE TABLE IF NOT EXISTS case_payments (id uuid PRIMARY KEY, organization_id uuid NOT NULL REFERENCES organizations(id), case_id uuid NOT NULL REFERENCES cases(id), amount_cents integer NOT NULL CHECK(amount_cents>0), paid_at timestamptz NOT NULL, note text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now());
+    CREATE INDEX IF NOT EXISTS case_payments_org_case_idx ON case_payments(organization_id,case_id);
+    CREATE TABLE IF NOT EXISTS case_notes (id uuid PRIMARY KEY, organization_id uuid NOT NULL REFERENCES organizations(id), case_id uuid NOT NULL REFERENCES cases(id), narrative text NOT NULL, source text NOT NULL CHECK(source IN ('typed','voice')), created_at timestamptz NOT NULL DEFAULT now());
+    CREATE INDEX IF NOT EXISTS case_notes_org_case_idx ON case_notes(organization_id,case_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS team_packages (organization_id uuid PRIMARY KEY REFERENCES organizations(id), seats integer NOT NULL DEFAULT 1 CHECK(seats>=1), additional_seat_cents integer NOT NULL DEFAULT 0 CHECK(additional_seat_cents>=0), updated_at timestamptz NOT NULL DEFAULT now());`);
     const db = createDatabaseClient(pool);
     authStores = createDrizzleAuthStores(db);
     clients = createDrizzleClientStore(db);
@@ -579,7 +586,44 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
           ],
         );
       },
-      getPlatformContact: async () => {
+      getWorkspace: async (organizationId) => {
+        if (!pool) return { clients: [], atendimentos: [], cases: [], payments: [], notes: [], teamPackage: { seats: 1, additionalSeatCents: 0 } };
+        const [clientsResult, atendimentosResult, casesResult, paymentsResult, notesResult, teamResult] = await Promise.all([
+          pool.query("select id, person_type as \"personType\", display_name as \"displayName\", created_at as \"createdAt\" from clients where organization_id=$1 order by created_at desc limit 200", [organizationId]),
+          pool.query("select id, channel_origin as \"channelOrigin\", summary, status, created_at as \"createdAt\" from atendimentos where organization_id=$1 order by created_at desc limit 200", [organizationId]),
+          pool.query(`select c.id,c.title,c.status,c.financial_classification as "financialClassification",c.process_number as "processNumber",c.created_at as "createdAt",
+            coalesce(f.quoted_cents,0) as "quotedCents",coalesce(f.contracted_cents,0) as "contractedCents",f.expected_at as "expectedAt",
+            coalesce((select sum(p.amount_cents) from case_payments p where p.organization_id=c.organization_id and p.case_id=c.id),0) as "paidCents"
+            from cases c left join case_financial_accounts f on f.case_id=c.id and f.organization_id=c.organization_id
+            where c.organization_id=$1 order by c.created_at desc limit 300`, [organizationId]),
+          pool.query("select p.id,p.case_id as \"caseId\",p.amount_cents as \"amountCents\",p.paid_at as \"paidAt\",p.note,c.title as \"caseTitle\" from case_payments p join cases c on c.id=p.case_id and c.organization_id=p.organization_id where p.organization_id=$1 order by p.paid_at desc limit 500", [organizationId]),
+          pool.query("select n.id,n.case_id as \"caseId\",n.narrative,n.source,n.created_at as \"createdAt\",c.title as \"caseTitle\" from case_notes n join cases c on c.id=n.case_id and c.organization_id=n.organization_id where n.organization_id=$1 order by n.created_at desc limit 300", [organizationId]),
+          pool.query("select seats,additional_seat_cents as \"additionalSeatCents\" from team_packages where organization_id=$1", [organizationId]),
+        ]);
+        return { clients: clientsResult.rows, atendimentos: atendimentosResult.rows, cases: casesResult.rows, payments: paymentsResult.rows, notes: notesResult.rows, teamPackage: teamResult.rows[0] ?? { seats: 1, additionalSeatCents: 0 } };
+      },
+      saveCaseFinance: async (input) => {
+        if (!pool) return;
+        await pool.query(`insert into case_financial_accounts(organization_id,case_id,quoted_cents,contracted_cents,description,expected_at)
+          select $1,$2,$3,$4,$5,$6 from cases where id=$2 and organization_id=$1
+          on conflict(case_id) do update set quoted_cents=$3,contracted_cents=$4,description=$5,expected_at=$6,updated_at=now()
+          where case_financial_accounts.organization_id=$1`, [input.organizationId,input.caseId,input.quotedCents,input.contractedCents,input.description,input.expectedAt]);
+      },
+      registerCasePayment: async (input) => {
+        if (!pool) return;
+        await pool.query(`insert into case_payments(id,organization_id,case_id,amount_cents,paid_at,note)
+          select $1,$2,$3,$4,$5,$6 from cases where id=$3 and organization_id=$2`, [uuidv7(),input.organizationId,input.caseId,input.amountCents,input.paidAt,input.note]);
+      },
+      registerCaseNote: async (input) => {
+        if (!pool) return;
+        await pool.query(`insert into case_notes(id,organization_id,case_id,narrative,source)
+          select $1,$2,$3,$4,$5 from cases where id=$3 and organization_id=$2`, [uuidv7(),input.organizationId,input.caseId,input.narrative,input.source]);
+      },
+      saveTeamPackage: async (input) => {
+        if (!pool) return;
+        await pool.query(`insert into team_packages(organization_id,seats,additional_seat_cents) values($1,$2,$3)
+          on conflict(organization_id) do update set seats=$2,additional_seat_cents=$3,updated_at=now()`, [input.organizationId,input.seats,input.additionalSeatCents]);
+      },      getPlatformContact: async () => {
         if (!pool)
           return { label: "BRITUS", email: null, phone: null, whatsapp: null, website: null };
         const result = await pool.query<{
@@ -612,3 +656,5 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
 
   return { app, close, demo };
 }
+
+
