@@ -37,7 +37,7 @@ h2.big{font-size:18px;margin:0 0 2px}
 <div class="top"><span class="brand">BRITUS<b> · Operações organizadas</b></span><span class="sp"></span>
   <button id="openLogin" class="ghost topcta">Entrar</button>
   <span id="orgtag" class="orgtag hidden"></span>
-  <button id="logout" class="link hidden">Sair</button>
+  <button id="logout" type="button" class="link hidden">Sair</button>
 </div>
 
 <div id="promoView" class="promo">
@@ -76,7 +76,7 @@ h2.big{font-size:18px;margin:0 0 2px}
 <section id="page-calendar" class="page"><div class="pagehead"><div><h1>Calendário de recebimentos</h1><p>Clique no dia para consultar os casos.</p></div></div><div class="pan"><div id="calendarTitle"></div><div id="calendarGrid" class="calendar"></div></div><div id="calendarDetail" class="pan" style="margin-top:16px"></div></section>
 <section id="page-reports" class="page"><div class="pagehead"><div><h1>Relatórios</h1><p>Informações operacionais e financeiras.</p></div><button id="printReport" class="quick">Imprimir / PDF</button></div><div class="widegrid"><div class="pan"><h3>Financeiro</h3><div id="reportFinance"></div></div><div class="pan"><h3>Operação</h3><div id="reportOperations"></div></div></div><div class="pan" style="margin-top:16px"><div id="reportPayments"></div></div></section>
 <section id="page-team" class="page"><div class="pagehead"><div><h1>Equipe e pacotes</h1><p>Usuários, acréscimos e ampliações.</p></div></div><div class="widegrid"><div class="pan"><h3>Pacote atual</h3><div id="teamSummary"></div></div><div class="pan"><h3>Configurar ampliação</h3><label>Usuários</label><input id="teamSeats" type="number" min="1" value="1"/><label>Valor por adicional</label><input id="teamPrice" type="number" step=".01"/><button id="saveTeam">Registrar pacote</button><div id="teamMsg" class="msg"></div></div></div></section>
-<section id="page-settings" class="page"><div class="pagehead"><div><h1>Configurações</h1><p>Organização e segurança.</p></div></div><div class="widegrid"><div class="pan"><h3>Sessão</h3><div id="sessinfo"></div><button id="logout2" class="ghost">Encerrar sessão</button></div><div class="pan"><h3>Proteções</h3><p>Dados isolados por organização.</p><p>Aquisições independentes dos demais sistemas.</p><p>Acesso permanente do Criador.</p></div></div></section>
+<section id="page-settings" class="page"><div class="pagehead"><div><h1>Configurações</h1><p>Organização e segurança.</p></div></div><div class="widegrid"><div class="pan"><h3>Sessão</h3><div id="sessinfo"></div><button id="logout2" type="button" class="ghost">Encerrar sessão</button></div><div class="pan"><h3>Proteções</h3><p>Dados isolados por organização.</p><p>Aquisições independentes dos demais sistemas.</p><p>Acesso permanente do Criador.</p></div></div></section>
 </main></div></div>
 <script>
 const AREA=${JSON.stringify(DEFAULT_AREA)};
@@ -164,7 +164,7 @@ async function doLogin(){
 }
 async function requestRecovery(){const email=$('forgotEmail').value.trim();$('forgotMsg').className='msg';$('forgotMsg').textContent='Enviando…';const r=await api('POST','/public/password-recovery',{email});$('forgotMsg').className=r.ok?'msg ok':'msg err';$('forgotMsg').textContent=r.ok?r.data.message:errMsg(r.data)}
 async function completePasswordReset(){const token=new URLSearchParams(location.search).get('reset')||'';$('resetMsg').className='msg';$('resetMsg').textContent='Redefinindo…';const r=await api('POST','/public/password-reset',{token,password:$('resetPassword').value});$('resetMsg').className=r.ok?'msg ok':'msg err';$('resetMsg').textContent=r.ok?r.data.message:errMsg(r.data);if(r.ok){history.replaceState({},'',location.pathname);$('resetPassword').value=''}}
-async function logout(){await api('POST','/auth/logout');csrf=null;location.reload()}
+async function logout(event){if(event){event.preventDefault();event.stopPropagation()}const buttons=[logout,logout2].filter(Boolean);buttons.forEach(button=>{button.disabled=true;button.textContent='Saindo…'});try{await fetch('/auth/logout',{method:'POST',credentials:'include',headers:{'content-type':'application/json'},cache:'no-store'})}finally{csrf=null;sessionStorage.removeItem('britusTrialEndsAt');location.replace('/?signedout=1')}}
 async function trial(){
   $('tmsg').className='msg';$('tmsg').textContent='Criando e liberando seu acesso…';
   const r=await api('POST','/public/trial',{name:$('tname').value,email:$('temail').value,password:$('tpassword').value,website:$('twebsite').value});
@@ -221,6 +221,7 @@ export function registerCommercialUi(app: FastifyInstance): void {
     await reply.type("text/html; charset=utf-8").send(HTML);
   });
 }
+
 
 
 
