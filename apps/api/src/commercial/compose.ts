@@ -126,6 +126,15 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
   if (opts.backend === "postgres") {
     if (!opts.databaseUrl) throw new Error("databaseUrl obrigatório no backend postgres");
     pool = createDatabasePool({ connectionString: opts.databaseUrl });
+    await pool.query(`CREATE TABLE IF NOT EXISTS platform_operations_settings (
+      id text PRIMARY KEY DEFAULT 'primary', maintenance_mode boolean NOT NULL DEFAULT false,
+      maintenance_message text NOT NULL DEFAULT 'Sistema em manutenção segura. Retornaremos em breve.',
+      temporary_notice text, notice_expires_at timestamptz, updated_at timestamptz NOT NULL DEFAULT now());
+      INSERT INTO platform_operations_settings(id) VALUES('primary') ON CONFLICT(id) DO NOTHING;
+      CREATE TABLE IF NOT EXISTS platform_operations_audit (
+      id uuid PRIMARY KEY, creator_id uuid NOT NULL, action text NOT NULL, target_organization_id uuid,
+      metadata jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+      CREATE INDEX IF NOT EXISTS platform_operations_audit_created_idx ON platform_operations_audit(created_at DESC);`);
     await pool.query(`CREATE TABLE IF NOT EXISTS case_financial_accounts (organization_id uuid NOT NULL REFERENCES organizations(id), case_id uuid PRIMARY KEY REFERENCES cases(id), quoted_cents integer NOT NULL DEFAULT 0, contracted_cents integer NOT NULL DEFAULT 0, description text NOT NULL DEFAULT '', expected_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
     CREATE INDEX IF NOT EXISTS case_financial_accounts_org_idx ON case_financial_accounts(organization_id);
     CREATE TABLE IF NOT EXISTS case_payments (id uuid PRIMARY KEY, organization_id uuid NOT NULL REFERENCES organizations(id), case_id uuid NOT NULL REFERENCES cases(id), amount_cents integer NOT NULL CHECK(amount_cents>0), paid_at timestamptz NOT NULL, note text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now());
@@ -623,7 +632,40 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
         if (!pool) return;
         await pool.query(`insert into team_packages(organization_id,seats,additional_seat_cents) values($1,$2,$3)
           on conflict(organization_id) do update set seats=$2,additional_seat_cents=$3,updated_at=now()`, [input.organizationId,input.seats,input.additionalSeatCents]);
-      },      getPlatformContact: async () => {
+      },      getCreatorOperations: async () => {
+        if (!pool) return { settings: {}, organizations: [], totals: {}, audit: [] };
+        const [settings, organizations, totals, auditRows] = await Promise.all([
+          pool.query("select maintenance_mode as \"maintenanceMode\",maintenance_message as \"maintenanceMessage\",temporary_notice as \"temporaryNotice\",notice_expires_at as \"noticeExpiresAt\" from platform_operations_settings where id='primary'"),
+          pool.query(`select o.id,o.name,o.status as "organizationStatus",s.status as "subscriptionStatus",s.trial_ends_at as "trialEndsAt",s.current_period_ends_at as "currentPeriodEndsAt",
+            coalesce(tp.seats,1) as seats,(select count(*) from organization_memberships om where om.organization_id=o.id) as "usersCount"
+            from organizations o left join subscriptions s on s.organization_id=o.id left join team_packages tp on tp.organization_id=o.id
+            order by o.created_at desc limit 500`),
+          pool.query(`select count(*)::int as organizations,
+            count(*) filter(where s.status='trialing')::int as trials,
+            count(*) filter(where s.status='active')::int as active,
+            count(*) filter(where s.status='expired')::int as expired
+            from organizations o left join subscriptions s on s.organization_id=o.id`),
+          pool.query("select action,target_organization_id as \"targetOrganizationId\",metadata,created_at as \"createdAt\" from platform_operations_audit order by created_at desc limit 100"),
+        ]);
+        return { settings: settings.rows[0] ?? {}, organizations: organizations.rows, totals: totals.rows[0] ?? {}, audit: auditRows.rows,
+          privacyBoundary: "O Criador administra apenas metadados operacionais do SaaS. Conteúdo de clientes, casos, relatos, documentos e financeiro interno não é consultado." };
+      },
+      updateCreatorOperations: async (input) => {
+        if (!pool) return;
+        await pool.query(`insert into platform_operations_settings(id,maintenance_mode,maintenance_message,temporary_notice,notice_expires_at)
+          values('primary',$1,$2,$3,$4) on conflict(id) do update set maintenance_mode=$1,maintenance_message=$2,temporary_notice=$3,notice_expires_at=$4,updated_at=now()`,
+          [input.maintenanceMode,input.maintenanceMessage,input.temporaryNotice,input.noticeExpiresAt]);
+        await pool.query("insert into platform_operations_audit(id,creator_id,action,metadata) values($1,$2,'platform.settings.update',$3::jsonb)",
+          [uuidv7(),input.creatorId,JSON.stringify({ maintenanceMode: input.maintenanceMode, noticeExpiresAt: input.noticeExpiresAt })]);
+      },
+      updateOrganizationSaas: async (input) => {
+        if (!pool) return;
+        await pool.query("update subscriptions set status=$3,current_period_ends_at=$4,updated_at=now() where organization_id=$1 and exists(select 1 from organizations where id=$1)",
+          [input.organizationId,input.creatorId,input.status,input.currentPeriodEndsAt]);
+        await pool.query("insert into platform_operations_audit(id,creator_id,action,target_organization_id,metadata) values($1,$2,'saas.organization.status',$3,$4::jsonb)",
+          [uuidv7(),input.creatorId,input.organizationId,JSON.stringify({ status: input.status, currentPeriodEndsAt: input.currentPeriodEndsAt })]);
+      },
+      getPlatformContact: async () => {
         if (!pool)
           return { label: "BRITUS", email: null, phone: null, whatsapp: null, website: null };
         const result = await pool.query<{
@@ -656,5 +698,6 @@ export async function composeCommercialApp(opts: CommercialOptions): Promise<Com
 
   return { app, close, demo };
 }
+
 
 

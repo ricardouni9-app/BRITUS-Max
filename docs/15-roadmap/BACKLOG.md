@@ -1,4 +1,4 @@
----
+﻿---
 id: DOC-BACKLOG
 title: Backlog Estratégico — Britus
 status: Active
@@ -56,3 +56,9 @@ se perderem; não bloqueiam a execução atual.
 - A compra, ampliação e uso de cada instalação/SaaS permanecem independentes dos
   demais projetos, ainda que componentes reutilizáveis sejam compartilhados por
   cópia aprovada ou biblioteca versionada.
+
+## Governança de projetos independentes — 2026-08-13
+- SIR, BRITUS-Max e **NEXUM TOTAL compromissos** (nome provisório) são produtos independentes.
+- Cada produto possui pasta local, repositório, implantação, banco, credenciais, usuários, pagamentos e comunicações próprios.
+- O compartilhamento limita-se a padrões aprovados ou bibliotecas versionadas, sem dependência operacional ou compartilhamento de dados.
+

@@ -69,6 +69,9 @@ export interface CommercialRoutesDeps {
   readonly registerCasePayment?: (input: { organizationId: string; caseId: string; amountCents: number; paidAt: Date; note: string }) => Promise<void>;
   readonly registerCaseNote?: (input: { organizationId: string; caseId: string; narrative: string; source: "typed" | "voice" }) => Promise<void>;
   readonly saveTeamPackage?: (input: { organizationId: string; seats: number; additionalSeatCents: number }) => Promise<void>;
+readonly getCreatorOperations?: () => Promise<unknown>;
+  readonly updateCreatorOperations?: (input: { creatorId: string; maintenanceMode: boolean; maintenanceMessage: string; temporaryNotice: string | null; noticeExpiresAt: Date | null }) => Promise<void>;
+  readonly updateOrganizationSaas?: (input: { creatorId: string; organizationId: string; status: "active" | "expired"; currentPeriodEndsAt: Date | null }) => Promise<void>;
 }
 
 export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialRoutesDeps): void {
@@ -81,6 +84,41 @@ export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialR
       .send(
         contact ?? { label: "BRITUS", email: null, phone: null, whatsapp: null, website: null },
       );
+  });
+
+  async function creatorSession(request: FastifyRequest, mutate = false) {
+    const token = readSessionCookie(request);
+    if (!token) return null;
+    const authenticated = await deps.authenticator.authenticate(token);
+    if (!authenticated.ok || authenticated.value.subjectType !== "creator") return null;
+    if (mutate && request.headers["x-csrf-token"] !== authenticated.value.csrfToken) return null;
+    return authenticated.value;
+  }
+
+  app.get("/creator/operations", async (request, reply) => {
+    if (!(await creatorSession(request))) return reply.status(403).send({ error: { code: "FORBIDDEN", message: "Acesso restrito ao Criador." } });
+    return reply.status(200).send((await deps.getCreatorOperations?.()) ?? {});
+  });
+
+  app.post("/creator/operations/settings", async (request, reply) => {
+    const session = await creatorSession(request, true);
+    const body = request.body as Record<string, unknown> | null;
+    if (!session || !body) return reply.status(403).send({ error: { code: "FORBIDDEN", message: "Sessão inválida." } });
+    await deps.updateCreatorOperations?.({ creatorId: session.subjectId, maintenanceMode: body.maintenanceMode === true,
+      maintenanceMessage: typeof body.maintenanceMessage === "string" ? body.maintenanceMessage.slice(0, 500) : "",
+      temporaryNotice: typeof body.temporaryNotice === "string" && body.temporaryNotice.trim() ? body.temporaryNotice.trim().slice(0, 500) : null,
+      noticeExpiresAt: typeof body.noticeExpiresAt === "string" && body.noticeExpiresAt ? new Date(body.noticeExpiresAt) : null });
+    return reply.status(200).send({ saved: true });
+  });
+
+  app.post("/creator/operations/organizations/:organizationId", async (request, reply) => {
+    const session = await creatorSession(request, true);
+    const body = request.body as Record<string, unknown> | null;
+    const { organizationId } = request.params as { organizationId: string };
+    if (!session || !body || (body.status !== "active" && body.status !== "expired")) return reply.status(403).send({ error: { code: "FORBIDDEN", message: "Operação inválida." } });
+    await deps.updateOrganizationSaas?.({ creatorId: session.subjectId, organizationId, status: body.status,
+      currentPeriodEndsAt: typeof body.currentPeriodEndsAt === "string" && body.currentPeriodEndsAt ? new Date(body.currentPeriodEndsAt) : null });
+    return reply.status(200).send({ saved: true });
   });
 
   app.post("/public/password-recovery", async (request, reply) => {
@@ -451,4 +489,5 @@ export function registerCommercialRoutes(app: FastifyInstance, deps: CommercialR
     );
   });
 }
+
 

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+﻿import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { composeCommercialApp, type CommercialApp } from "./compose.js";
 
 // Provas do MODO COMERCIAL (backend memory): rotas legítimas, autenticação/CSRF real,
@@ -238,6 +238,11 @@ describe("modo comercial (memory) — segurança e fluxo", () => {
     expect(r.statusCode).toBe(400);
   });
 
+  it("usuário organizacional não acessa o console operacional do Criador", async () => {
+    const r = await c.app.inject({ method: "GET", url: "/creator/operations", headers: { cookie } });
+    expect(r.statusCode).toBe(403);
+  });
+
   it("selecionar organização sem vínculo é rejeitado (isolamento)", async () => {
     const r = await c.app.inject({
       method: "POST",
@@ -248,3 +253,6 @@ describe("modo comercial (memory) — segurança e fluxo", () => {
     expect(r.statusCode).toBeGreaterThanOrEqual(400);
   });
 });
+
+
+
